@@ -91,29 +91,3 @@ def run_agent(user_input):
         history += f"\nAssistant: {raw}\nTool result: {result}"
 
     return {"final": "Max steps reached"}
-    prompt = SYSTEM_PROMPT + "\nUser: " + user_input
-    raw = ask_llm(prompt)
-
-    try:
-        data = json.loads(clean_json(raw))
-    except:
-        return {"error": "Invalid JSON", "raw": raw}
-
-    action = data.get("action")
-
-    if action == "write_file":
-        args = data["args"]
-        result = write_file(args["path"], args["content"])
-        return {"result": result}
-
-    elif action == "read_file":
-        args = data["args"]
-        result = read_file(args["path"])
-        return {"result": result}
-
-    elif action == "suggest_command":
-        args = data["args"]
-        return {"result": suggest_command(args["cmd"])}
-
-    else:
-        return {"message": data.get("message", raw)}
