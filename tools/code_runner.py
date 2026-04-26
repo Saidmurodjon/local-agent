@@ -14,17 +14,29 @@ def run_python_file(path: str):
         return {"error": "Access denied"}
 
     if not os.path.exists(full_path):
-        return {"error": "File not found"}
+        return {
+            "returncode": 1,
+            "stdout": "",
+            "stderr": f"File not found in workspace: {path}"
+        }
 
-    result = subprocess.run(
-        ["python", full_path],
-        capture_output=True,
-        text=True,
-        timeout=20
-    )
+    try:
+        result = subprocess.run(
+            ["python", full_path],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
 
-    return {
-        "returncode": result.returncode,
-        "stdout": result.stdout,
-        "stderr": result.stderr
-    }
+        return {
+            "returncode": result.returncode,
+            "stdout": result.stdout,
+            "stderr": result.stderr
+        }
+
+    except subprocess.TimeoutExpired:
+        return {
+            "returncode": 1,
+            "stdout": "",
+            "stderr": "Execution timeout: possible infinite loop or input() usage"
+        }
