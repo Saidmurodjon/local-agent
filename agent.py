@@ -62,8 +62,7 @@ def ask_llm(prompt):
     response = requests.post(OLLAMA_URL, json={
         "model": MODEL,
         "prompt": prompt,
-        "stream": False,
-        "format": "json"
+        "stream": False
     })
     return response.json()["response"]
 
@@ -73,26 +72,81 @@ def clean_json(raw: str) -> str:
         raw = raw.replace("```json", "").replace("```", "").strip()
     return raw
 
+def generate_code(user_input):
+    prompt = f"""
+Return ONLY Python code.
+No explanation.
+No text.
+No markdown.
+
+Task:
+{user_input}
+"""
+    raw = ask_llm(prompt)
+    return extract_code(raw)
+
+
+def fix_code(code, error):
+    prompt = f"""
+Fix this Python code.
+
+Return ONLY corrected code.
+No explanation.
+
+Code:
+{code}
+
+Error:
+{error}
+"""
+    raw = ask_llm(prompt)
+    return extract_code(raw)
+
+
 def run_agent(user_input):
-    if "yarat" in user_input:
-        code = """def buggy_function(x):
-    return str(x) + 1
+    path = "dynamic_task.py"
 
-print(buggy_function(5))
-"""
-        write_file("bug_test.py", code)
+    code = generate_code(user_input)
+    write_file(path, code)
 
-    result = run_python_file("bug_test.py")
+    result = run_python_file(path)
 
-    if result.get("returncode") != 0:
-        fixed_code = """def buggy_function(x):
-    return x + 1
+    for attempt in range(3):
+        if result.get("returncode") == 0:
+            return {
+                "status": "success",
+                "file": path,
+                "result": result
+            }
 
-print(buggy_function(5))
-"""
-        write_file("bug_test.py", fixed_code)
-        result = run_python_file("bug_test.py")
+        error = result.get("stderr", "")
+        code = fix_code(code, error)
+        write_file(path, code)
+        result = run_python_file(path)
 
     return {
-        "final": result
+        "status": "failed",
+        "file": path,
+        "last_result": result
     }
+def extract_code(raw: str) -> str:
+    # agar ```python block bo‘lsa
+    if "```" in raw:
+        raw = raw.split("```")[1]
+
+        if raw.startswith("python"):
+            raw = raw.replace("python", "", 1)
+
+    # explanationlarni kesamiz
+    lines = raw.splitlines()
+
+    code_lines = []
+    for line in lines:
+        # explanation boshlansa to‘xtatamiz
+        if line.strip().lower().startswith("it seems"):
+            break
+        if line.strip().startswith("#"):
+            continue
+        code_lines.append(line)
+
+    return "\n".join(code_lines).strip()
