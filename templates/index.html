@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<title>Local Agent V11</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', monospace; background: #0a0f1e; color: #e0e6ff; display: flex; height: 100vh; overflow: hidden; }
+.sidebar { width: 280px; background: #111827; border-right: 1px solid #1f2937; padding: 20px; overflow-y: auto; flex-shrink: 0; }
+.main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.header { background: #111827; padding: 16px 24px; border-bottom: 1px solid #1f2937; display: flex; align-items: center; gap: 12px; }
+.header h1 { font-size: 1.2rem; color: #60a5fa; }
+.badge { background: #10b981; color: white; font-size: 0.7rem; padding: 2px 8px; border-radius: 20px; }
+.output { flex: 1; padding: 24px; overflow-y: auto; font-family: monospace; font-size: 0.85rem; }
+.log-line { padding: 4px 0; border-bottom: 1px solid #1a1f2e; word-break: break-word; }
+.log-line.success { color: #34d399; }
+.log-line.error { color: #f87171; }
+.log-line.info { color: #93c5fd; }
+.input-area { padding: 16px 24px; background: #111827; border-top: 1px solid #1f2937; display: flex; gap: 12px; }
+textarea { flex: 1; background: #1f2937; color: #e0e6ff; border: 1px solid #374151; border-radius: 8px; padding: 12px; font-family: monospace; font-size: 0.9rem; resize: none; height: 80px; outline: none; }
+textarea:focus { border-color: #3b82f6; }
+.btn { padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: all 0.2s; white-space: nowrap; }
+.btn-primary { background: #3b82f6; color: white; }
+.btn-primary:hover { background: #2563eb; }
+.btn-primary:disabled { background: #374151; cursor: not-allowed; }
+.btn-git { background: #1f2937; color: #60a5fa; border: 1px solid #374151; }
+.btn-clear { background: #1f2937; color: #9ca3af; border: 1px solid #374151; }
+.sidebar h3 { color: #9ca3af; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin: 16px 0 8px; }
+.file-item { font-size: 0.8rem; padding: 4px 8px; color: #9ca3af; border-radius: 4px; }
+.git-panel { background: #1f2937; border-radius: 8px; padding: 12px; margin-top: 8px; }
+.git-panel input { width: 100%; background: #111827; color: #e0e6ff; border: 1px solid #374151; border-radius: 4px; padding: 6px 8px; font-size: 0.8rem; margin: 4px 0; outline: none; }
+.git-panel input:focus { border-color: #3b82f6; }
+.stat { display: flex; justify-content: space-between; font-size: 0.75rem; color: #6b7280; padding: 4px 0; }
+.examples { display: flex; flex-direction: column; gap: 6px; }
+.example-btn { background: #1f2937; border: 1px solid #374151; color: #9ca3af; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 0.75rem; text-align: left; transition: all 0.2s; }
+.example-btn:hover { border-color: #3b82f6; color: #60a5fa; }
+.logo { color: #60a5fa; font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; }
+.logo-sub { color: #4b5563; font-size: 0.75rem; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="logo">Local Agent</div>
+  <div class="logo-sub">V11 &bull; i5-10th &bull; 12GB &bull; MX330</div>
+
+  <h3>Quick Tasks</h3>
+  <div class="examples">
+    <button class="example-btn" onclick="setPrompt('flask todo app yaratib githubga push qil')">Flask Todo App</button>
+    <button class="example-btn" onclick="setPrompt('python calculator GUI tkinter bilan yarat')">Calculator GUI</button>
+    <button class="example-btn" onclick="setPrompt('web scraper requests beautifulsoup bilan')">Web Scraper</button>
+    <button class="example-btn" onclick="setPrompt('REST API FastAPI bilan yaratib test qil')">FastAPI Server</button>
+    <button class="example-btn" onclick="setPrompt('data visualization matplotlib pandas')">Data Viz</button>
+    <button class="example-btn" onclick="setPrompt('HTML CSS JS landing page modern dizayn')">Landing Page</button>
+  </div>
+
+  <h3>Workspace Files</h3>
+  <div id="file-list"><div style="color:#4b5563;font-size:0.75rem;">Yuklanmoqda...</div></div>
+
+  <h3>GitHub Push</h3>
+  <div class="git-panel">
+    <input type="text" id="git-path" placeholder="./workspace/myapp" />
+    <input type="text" id="git-remote" placeholder="https://github.com/user/repo.git" />
+    <input type="text" id="git-message" placeholder="V11 upgrade" />
+    <button class="btn btn-git" style="width:100%;margin-top:8px" onclick="pushToGit()">Push to GitHub</button>
+  </div>
+
+  <h3>System</h3>
+  <div>
+    <div class="stat"><span>Model</span><span style="color:#34d399">qwen2.5-coder:7b</span></div>
+    <div class="stat"><span>GPU layers</span><span style="color:#34d399">18 (MX330)</span></div>
+    <div class="stat"><span>Context</span><span style="color:#34d399">8192 tokens</span></div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="header">
+    <span>Agent Terminal</span>
+    <span class="badge" id="status-badge">READY</span>
+    <div style="margin-left:auto;font-size:0.75rem;color:#4b5563" id="task-counter">0 tasks</div>
+  </div>
+
+  <div class="output" id="output">
+    <div class="log-line info">Local Agent V11 tayyor. Buyruq bering...</div>
+    <div class="log-line info">Core i5 10th Gen | 12GB RAM | MX 330 2GB GPU | qwen2.5-coder:7b</div>
+  </div>
+
+  <div class="input-area">
+    <textarea id="prompt" placeholder="Dastur yaratish, web sahifa, GitHub push... (Enter = yuborish, Shift+Enter = yangi qator)"></textarea>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button class="btn btn-primary" id="run-btn" onclick="runTask()">Run</button>
+      <button class="btn btn-clear" onclick="clearOutput()">Clear</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let taskCount = 0;
+let pollingIntervals = {};
+
+function setPrompt(text) {
+  document.getElementById('prompt').value = text;
+  document.getElementById('prompt').focus();
+}
+
+function addLog(msg, type = 'info') {
+  const output = document.getElementById('output');
+  const div = document.createElement('div');
+  div.className = 'log-line ' + type;
+  div.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
+  output.appendChild(div);
+  output.scrollTop = output.scrollHeight;
+}
+
+function clearOutput() {
+  document.getElementById('output').innerHTML = '';
+}
+
+async function runTask() {
+  const prompt = document.getElementById('prompt').value.trim();
+  if (!prompt) return;
+
+  const btn = document.getElementById('run-btn');
+  const badge = document.getElementById('status-badge');
+  btn.disabled = true;
+  badge.textContent = 'RUNNING';
+  badge.style.background = '#f59e0b';
+
+  addLog('Task: ' + prompt, 'info');
+  document.getElementById('prompt').value = '';
+
+  try {
+    const res = await fetch('/api/run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt }),
+    });
+    const { task_id, error } = await res.json();
+    if (error) { addLog('Xato: ' + error, 'error'); resetBtn(); return; }
+
+    taskCount++;
+    document.getElementById('task-counter').textContent = taskCount + ' tasks';
+
+    const poll = setInterval(async () => {
+      try {
+        const statusRes = await fetch('/api/status/' + task_id);
+        const status = await statusRes.json();
+
+        (status.log || []).forEach(msg => addLog(msg, 'info'));
+
+        if (status.status === 'done') {
+          clearInterval(poll);
+          const r = status.result;
+          if (r && r.status === 'success') {
+            addLog('Muvaffaqiyat! Fayllar: ' + (r.created_files || []).join(', '), 'success');
+            if (r.result && r.result.stdout) addLog(r.result.stdout.slice(0, 300), 'success');
+            if (r.git && r.git.stdout) addLog('Git: ' + r.git.stdout.slice(0, 120), 'success');
+          } else {
+            addLog('Bajarilmadi: ' + JSON.stringify(r && r.result && r.result.stderr || ''), 'error');
+          }
+          resetBtn();
+          loadWorkspace();
+        } else if (status.status === 'error') {
+          clearInterval(poll);
+          addLog('Xato: ' + status.error, 'error');
+          resetBtn('ERROR', '#ef4444');
+        }
+      } catch (e) {
+        addLog('Poll xatosi: ' + e.message, 'error');
+      }
+    }, 1000);
+
+  } catch (e) {
+    addLog('Server xatosi: ' + e.message, 'error');
+    resetBtn('ERROR', '#ef4444');
+  }
+}
+
+function resetBtn(label = 'READY', color = '#10b981') {
+  document.getElementById('run-btn').disabled = false;
+  const badge = document.getElementById('status-badge');
+  badge.textContent = label;
+  badge.style.background = color;
+}
+
+async function loadWorkspace() {
+  try {
+    const res = await fetch('/api/workspace');
+    const { files } = await res.json();
+    const list = document.getElementById('file-list');
+    if (!files || files.length === 0) {
+      list.innerHTML = '<div style="color:#4b5563;font-size:0.75rem;">Bo\'sh</div>';
+    } else {
+      list.innerHTML = files.slice(0, 30).map(f =>
+        '<div class="file-item">' + f + '</div>'
+      ).join('');
+    }
+  } catch (e) {}
+}
+
+async function pushToGit() {
+  const path = document.getElementById('git-path').value.trim();
+  const remote = document.getElementById('git-remote').value.trim() || null;
+  const message = document.getElementById('git-message').value.trim() || 'Auto commit V11';
+
+  if (!path) { addLog('Path kiriting', 'error'); return; }
+  addLog('GitHub push: ' + path + (remote ? ' -> ' + remote : ' (local only)'), 'info');
+
+  try {
+    const res = await fetch('/api/git/push', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path, remote, message }),
+    });
+    const result = await res.json();
+    if (result.returncode === 0) {
+      addLog('Git: ' + result.stdout.slice(0, 200), 'success');
+    } else {
+      addLog('Git xato: ' + result.stderr.slice(0, 200), 'error');
+    }
+  } catch (e) {
+    addLog('Push xatosi: ' + e.message, 'error');
+  }
+}
+
+document.getElementById('prompt').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    runTask();
+  }
+});
+
+loadWorkspace();
+setInterval(loadWorkspace, 30000);
+</script>
+</body>
+</html>
