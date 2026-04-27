@@ -3,378 +3,334 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Local Agent V11</title>
-<!-- marked.js for markdown rendering -->
+<title>Local Agent V12</title>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-<!-- highlight.js for code syntax -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<link  rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <style>
-:root {
-  --bg:       #0d1117;
-  --bg2:      #161b22;
-  --bg3:      #1c2128;
-  --border:   #30363d;
-  --text:     #e6edf3;
-  --muted:    #8b949e;
-  --accent:   #58a6ff;
-  --green:    #3fb950;
-  --red:      #f85149;
-  --orange:   #d29922;
-  --purple:   #bc8cff;
-  --code-bg:  #161b22;
-  --radius:   8px;
-  --font:     -apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
-  --mono:     'Cascadia Code','JetBrains Mono','Fira Code',Consolas,monospace;
+:root{
+  --bg:#0d1117;--bg2:#161b22;--bg3:#1c2128;--bg4:#21262d;
+  --border:#30363d;--border2:#21262d;
+  --text:#e6edf3;--muted:#8b949e;--muted2:#6e7681;
+  --accent:#58a6ff;--green:#3fb950;--red:#f85149;
+  --orange:#d29922;--purple:#bc8cff;--pink:#ff7b72;
+  --r:6px;--font:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+  --mono:'Cascadia Code','JetBrains Mono',Consolas,monospace;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;overflow:hidden}
-body{font-family:var(--font);background:var(--bg);color:var(--text);display:flex;font-size:14px;line-height:1.5}
+body{font-family:var(--font);background:var(--bg);color:var(--text);display:flex;font-size:13px}
 
-/* ─── scrollbar ─── */
-::-webkit-scrollbar{width:6px;height:6px}
+/* scrollbar */
+::-webkit-scrollbar{width:5px;height:5px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:#30363d;border-radius:3px}
-::-webkit-scrollbar-thumb:hover{background:#484f58}
 
-/* ══════════════════ LEFT SIDEBAR ══════════════════ */
-.sidebar{
-  width:240px;flex-shrink:0;background:var(--bg2);
-  border-right:1px solid var(--border);
-  display:flex;flex-direction:column;
-}
-.sidebar-top{
-  padding:12px 14px 10px;
-  border-bottom:1px solid var(--border);
-  display:flex;align-items:center;justify-content:space-between;
-}
-.logo{font-size:13px;font-weight:600;color:var(--accent);letter-spacing:.3px}
-.logo span{color:var(--muted);font-weight:400;font-size:11px;margin-left:4px}
-.new-btn{
-  background:none;border:1px solid var(--border);color:var(--muted);
-  border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer;
-  transition:.15s;display:flex;align-items:center;gap:4px;
-}
-.new-btn:hover{border-color:var(--accent);color:var(--accent)}
+/* ─── LEFT SIDEBAR ─── */
+.sidebar{width:230px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column}
+.sidebar-top{padding:10px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.logo{font-size:13px;font-weight:700;color:var(--accent);letter-spacing:.2px;white-space:nowrap}
+.logo sub{font-size:9px;color:var(--muted);font-weight:400;vertical-align:middle;margin-left:2px}
+.icon-btn{background:none;border:1px solid var(--border);color:var(--muted);border-radius:5px;padding:3px 7px;font-size:11px;cursor:pointer;transition:.15s;white-space:nowrap}
+.icon-btn:hover{border-color:var(--accent);color:var(--accent)}
 
-.sessions-list{flex:1;overflow-y:auto;padding:6px}
-.sess-item{
-  padding:8px 10px;border-radius:6px;cursor:pointer;
-  margin-bottom:2px;transition:.15s;display:flex;align-items:flex-start;gap:8px;
-}
+.sessions-scroll{flex:1;overflow-y:auto;padding:4px}
+.sess-item{padding:8px 10px;border-radius:var(--r);cursor:pointer;margin-bottom:1px;transition:.15s;display:flex;gap:8px;align-items:flex-start;border:1px solid transparent}
 .sess-item:hover{background:var(--bg3)}
-.sess-item.active{background:#1f3a5a}
-.sess-icon{color:var(--muted);font-size:13px;margin-top:1px;flex-shrink:0}
+.sess-item.active{background:#1a2d45;border-color:#1f4a7f}
+.sess-icon{color:var(--muted2);font-size:12px;margin-top:1px;flex-shrink:0}
 .sess-body{flex:1;min-width:0}
-.sess-name{font-size:12.5px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sess-time{font-size:10.5px;color:var(--muted);margin-top:2px}
-.sess-del{
-  color:transparent;font-size:11px;padding:2px;border-radius:3px;
-  cursor:pointer;flex-shrink:0;transition:.1s;
-}
-.sess-item:hover .sess-del{color:var(--muted)}
-.sess-del:hover{color:var(--red)!important;background:rgba(248,81,73,.1)}
+.sess-name{font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
+.sess-folder{font-size:10px;color:var(--muted2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;font-family:var(--mono)}
+.sess-preview{font-size:10.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.sess-actions{display:flex;gap:3px;flex-shrink:0;opacity:0;transition:.15s}
+.sess-item:hover .sess-actions{opacity:1}
+.sess-action{background:none;border:none;color:var(--muted);cursor:pointer;padding:2px 4px;border-radius:3px;font-size:11px}
+.sess-action:hover{color:var(--text);background:var(--bg4)}
+.sess-action.del:hover{color:var(--red)}
 
-.sidebar-footer{padding:10px 14px;border-top:1px solid var(--border)}
-.hw-row{display:flex;justify-content:space-between;font-size:10.5px;margin-bottom:3px}
-.hw-label{color:var(--muted)}
-.hw-val{color:var(--green);font-family:var(--mono)}
+.sidebar-info{padding:10px 12px;border-top:1px solid var(--border)}
+.info-row{display:flex;justify-content:space-between;font-size:10.5px;margin-bottom:3px}
+.info-label{color:var(--muted2)}
+.info-val{color:var(--green);font-family:var(--mono);font-size:10px}
+select.model-sel{background:var(--bg3);color:var(--accent);border:1px solid var(--border);border-radius:4px;font-size:10px;padding:2px 4px;font-family:var(--mono);cursor:pointer;max-width:130px}
 
-/* ══════════════════ MAIN CHAT ══════════════════ */
+/* ─── CENTER MAIN ─── */
 .main{flex:1;display:flex;flex-direction:column;min-width:0}
 
-.topbar{
-  background:var(--bg2);border-bottom:1px solid var(--border);
-  padding:10px 18px;display:flex;align-items:center;gap:10px;flex-shrink:0;
-}
-.topbar-title{font-size:13.5px;font-weight:600;color:var(--text);flex:1}
-.badge{
-  font-size:10px;padding:2px 8px;border-radius:12px;
-  font-weight:600;letter-spacing:.5px;transition:.3s;
-}
-.badge.ready{background:#1b3a2a;color:var(--green);border:1px solid #2d6a4f}
-.badge.running{background:#3a2d00;color:var(--orange);border:1px solid #7d5a00}
-.badge.error{background:#3a1a1a;color:var(--red);border:1px solid #6e2020}
-.badge.thinking{background:#1a2a3a;color:var(--accent);border:1px solid #1f4a7f}
-.model-chip{
-  font-size:10.5px;color:var(--muted);background:var(--bg3);
-  padding:3px 8px;border-radius:4px;font-family:var(--mono);
-}
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:9px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.topbar-title{font-size:13px;font-weight:600;color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.topbar-folder{font-size:10.5px;color:var(--muted);font-family:var(--mono);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.status-badge{font-size:10px;padding:2px 8px;border-radius:12px;font-weight:700;letter-spacing:.5px;white-space:nowrap}
+.status-badge.ready{background:#0d2b1a;color:var(--green);border:1px solid #1a4a2a}
+.status-badge.running{background:#2d2000;color:var(--orange);border:1px solid #5a3d00}
+.status-badge.error{background:#2d0d0d;color:var(--red);border:1px solid #6e1a1a}
+.status-badge.thinking{background:#0d1f35;color:var(--accent);border:1px solid #1a3d6e}
+.model-chip{font-size:10px;color:var(--muted);background:var(--bg3);padding:3px 8px;border-radius:4px;font-family:var(--mono);white-space:nowrap}
 
-/* ─── messages ─── */
-.messages{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px}
+/* messages */
+.messages{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:14px}
 
 .msg-row{display:flex;flex-direction:column;gap:4px}
 .msg-header{display:flex;align-items:center;gap:8px;padding:0 2px}
-.msg-avatar{
-  width:22px;height:22px;border-radius:50%;
-  font-size:11px;display:flex;align-items:center;justify-content:center;
-  font-weight:700;flex-shrink:0;
-}
-.msg-avatar.user{background:#1f4a7f;color:var(--accent)}
-.msg-avatar.assistant{background:#1b3a2a;color:var(--green)}
+.msg-av{width:22px;height:22px;border-radius:50%;font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0}
+.msg-av.user{background:#1f4a7f;color:var(--accent)}
+.msg-av.assistant{background:#0d2b1a;color:var(--green)}
+.msg-av.system{background:#2d1a40;color:var(--purple)}
 .msg-role{font-size:12px;font-weight:600;color:var(--muted)}
-.msg-time-stamp{font-size:10.5px;color:#484f58;margin-left:auto}
+.msg-ts{font-size:10px;color:var(--muted2);margin-left:auto}
 
-.msg-body{
-  padding:10px 14px;border-radius:var(--radius);
-  font-size:13.5px;line-height:1.6;margin-left:30px;
-}
-.msg-body.user{
-  background:var(--bg3);border:1px solid var(--border);
-  color:var(--text);
-}
-.msg-body.assistant{
-  background:var(--bg2);
-  color:#cdd9e5;
-}
+.msg-body{padding:10px 14px;border-radius:var(--r);font-size:13px;line-height:1.6;margin-left:30px}
+.msg-body.user{background:var(--bg3);border:1px solid var(--border)}
+.msg-body.assistant{background:var(--bg2)}
+.msg-body.error-msg{background:#1a0505;border:1px solid #6e1a1a;color:var(--red)}
 
-/* ─── tool cards (inside assistant messages) ─── */
-.tool-card{
-  background:var(--bg3);border:1px solid var(--border);
-  border-radius:6px;margin:8px 0;overflow:hidden;
-}
-.tool-card-head{
-  padding:6px 12px;font-size:11.5px;display:flex;align-items:center;
-  gap:6px;color:var(--muted);background:var(--bg);border-bottom:1px solid var(--border);
-  cursor:pointer;user-select:none;
-}
-.tool-card-head:hover{color:var(--text)}
-.tool-label{font-family:var(--mono);color:var(--purple);font-size:11px}
-.tool-body{padding:8px 12px;font-family:var(--mono);font-size:12px;color:#8b949e;max-height:160px;overflow-y:auto}
+/* log lines */
+.log-line{display:flex;align-items:flex-start;gap:6px;padding:2px 4px 2px 30px;font-size:11.5px;font-family:var(--mono);color:var(--muted2)}
+.log-line.ok{color:var(--green)}
+.log-line.err{color:var(--red)}
+.log-icon{flex-shrink:0;margin-top:1px}
 
-/* ─── markdown content ─── */
-.md-content h1,.md-content h2,.md-content h3{color:var(--text);margin:12px 0 6px;font-weight:600}
-.md-content h1{font-size:16px}.md-content h2{font-size:14.5px}.md-content h3{font-size:13px}
-.md-content p{margin:6px 0}
-.md-content ul,.md-content ol{padding-left:20px;margin:6px 0}
-.md-content li{margin:3px 0}
-.md-content code{
-  font-family:var(--mono);font-size:12.5px;
-  background:#21262d;color:#e6edf3;
-  padding:1px 5px;border-radius:3px;
-}
-.md-content pre{
-  background:#161b22!important;border:1px solid var(--border);
-  border-radius:6px;overflow:auto;margin:8px 0;position:relative;
-}
-.md-content pre code{
-  background:transparent!important;padding:12px 14px;display:block;
-  font-size:12.5px;line-height:1.5;
-}
-.copy-btn{
-  position:absolute;top:6px;right:8px;
-  background:var(--bg3);border:1px solid var(--border);color:var(--muted);
-  border-radius:4px;padding:2px 8px;font-size:10.5px;cursor:pointer;
-  transition:.15s;
-}
+/* markdown */
+.md h1,.md h2,.md h3{color:var(--text);margin:10px 0 6px;font-weight:600}
+.md h1{font-size:15px}.md h2{font-size:13.5px}.md h3{font-size:12.5px}
+.md p{margin:5px 0}
+.md ul,.md ol{padding-left:18px;margin:5px 0}
+.md li{margin:2px 0}
+.md code{font-family:var(--mono);font-size:11.5px;background:#21262d;color:#e6edf3;padding:1px 5px;border-radius:3px}
+.md pre{background:#161b22!important;border:1px solid var(--border);border-radius:var(--r);overflow:auto;margin:8px 0;position:relative}
+.md pre code{background:transparent!important;padding:12px 14px;display:block;font-size:11.5px;line-height:1.5}
+.copy-btn{position:absolute;top:6px;right:8px;background:var(--bg3);border:1px solid var(--border);color:var(--muted);border-radius:3px;padding:2px 7px;font-size:10px;cursor:pointer;transition:.15s}
 .copy-btn:hover{border-color:var(--accent);color:var(--accent)}
-.md-content a{color:var(--accent)}
-.md-content blockquote{
-  border-left:3px solid var(--border);padding-left:12px;color:var(--muted);margin:8px 0;
-}
-.md-content hr{border:none;border-top:1px solid var(--border);margin:12px 0}
+.md a{color:var(--accent)}
+.md blockquote{border-left:3px solid var(--border);padding-left:12px;color:var(--muted);margin:6px 0}
+.md hr{border:none;border-top:1px solid var(--border);margin:10px 0}
+.md table{border-collapse:collapse;width:100%;margin:8px 0;font-size:12px}
+.md td,.md th{border:1px solid var(--border);padding:5px 10px}
+.md th{background:var(--bg3)}
 
-/* ─── log line ─── */
-.log-msg{
-  display:flex;align-items:flex-start;gap:8px;
-  padding:4px 8px 4px 30px;font-size:12px;
-  font-family:var(--mono);color:var(--muted);border-radius:4px;
-}
-.log-msg.ok{color:#3fb950}
-.log-msg.err{color:var(--red)}
-.log-msg .log-icon{flex-shrink:0}
-
-/* ─── empty state ─── */
-.empty-state{
-  flex:1;display:flex;flex-direction:column;align-items:center;
-  justify-content:center;gap:16px;padding:40px;
-}
-.empty-icon{font-size:40px;color:var(--border)}
-.empty-title{font-size:15px;font-weight:600;color:var(--muted)}
-.empty-sub{font-size:12.5px;color:#484f58;text-align:center;max-width:320px}
+/* empty state */
+.empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:40px;text-align:center}
+.empty-icon{font-size:36px;color:var(--border)}
+.empty-title{font-size:15px;font-weight:700;color:var(--muted)}
+.empty-sub{font-size:12px;color:var(--muted2);max-width:300px;line-height:1.6}
 .quick-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-width:380px}
-.quick-card{
-  background:var(--bg3);border:1px solid var(--border);
-  border-radius:6px;padding:10px 12px;cursor:pointer;transition:.15s;
-}
-.quick-card:hover{border-color:var(--accent);background:#1a2332}
-.quick-card-label{font-size:12px;font-weight:600;color:var(--text)}
-.quick-card-sub{font-size:11px;color:var(--muted);margin-top:3px}
+.quick-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;cursor:pointer;transition:.15s;text-align:left}
+.quick-card:hover{border-color:var(--accent);background:#0d1f35}
+.qc-title{font-size:12px;font-weight:600;color:var(--text)}
+.qc-sub{font-size:10.5px;color:var(--muted);margin-top:3px}
 
-/* ─── input area ─── */
-.input-area{
-  border-top:1px solid var(--border);
-  padding:14px 18px;background:var(--bg2);flex-shrink:0;
-}
-.input-box{
-  background:var(--bg3);border:1px solid var(--border);
-  border-radius:var(--radius);display:flex;align-items:flex-end;gap:0;
-  transition:.2s;
-}
-.input-box:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(88,166,255,.1)}
-textarea{
-  flex:1;background:transparent;color:var(--text);
-  border:none;outline:none;resize:none;
-  padding:11px 14px;font-family:var(--font);font-size:13.5px;
-  line-height:1.5;height:44px;max-height:200px;overflow-y:auto;
-}
-.input-actions{display:flex;align-items:flex-end;padding:8px 10px;gap:6px}
-.send-btn{
-  background:var(--accent);color:#000;border:none;
-  border-radius:6px;padding:6px 14px;font-size:13px;font-weight:600;
-  cursor:pointer;transition:.15s;white-space:nowrap;
-}
+/* input */
+.input-area{border-top:1px solid var(--border);padding:12px 16px;background:var(--bg2);flex-shrink:0}
+.input-box{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);display:flex;align-items:flex-end;transition:.2s}
+.input-box:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(88,166,255,.08)}
+textarea{flex:1;background:transparent;color:var(--text);border:none;outline:none;resize:none;padding:10px 12px;font-family:var(--font);font-size:13px;line-height:1.5;height:42px;max-height:180px;overflow-y:auto}
+.inp-actions{display:flex;align-items:flex-end;padding:7px 8px;gap:6px}
+.send-btn{background:var(--accent);color:#000;border:none;border-radius:5px;padding:6px 14px;font-size:12.5px;font-weight:700;cursor:pointer;transition:.15s}
 .send-btn:hover{background:#79c0ff}
-.send-btn:disabled{background:var(--bg);color:var(--muted);cursor:not-allowed}
-.clear-btn{
-  background:none;border:1px solid var(--border);color:var(--muted);
-  border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer;transition:.15s;
-}
-.clear-btn:hover{border-color:var(--border);color:var(--text)}
-.input-hint{font-size:10.5px;color:#484f58;margin-top:6px;padding:0 2px}
+.send-btn:disabled{background:var(--bg4);color:var(--muted);cursor:not-allowed}
+.inp-hint{font-size:10px;color:var(--muted2);margin-top:5px}
 
-/* ══════════════════ RIGHT TOOLS PANEL ══════════════════ */
-.tools{width:260px;flex-shrink:0;background:var(--bg2);border-left:1px solid var(--border);display:flex;flex-direction:column}
-.tabs{display:flex;border-bottom:1px solid var(--border)}
-.tab-btn{
-  flex:1;padding:9px 6px;font-size:11.5px;font-weight:600;cursor:pointer;
-  background:none;border:none;color:var(--muted);border-bottom:2px solid transparent;
-  transition:.15s;
-}
+/* ─── RIGHT PANEL ─── */
+.right{width:260px;flex-shrink:0;background:var(--bg2);border-left:1px solid var(--border);display:flex;flex-direction:column}
+.tabs{display:flex;border-bottom:1px solid var(--border);overflow-x:auto}
+.tabs::-webkit-scrollbar{height:0}
+.tab-btn{flex-shrink:0;padding:8px 10px;font-size:11px;font-weight:600;cursor:pointer;background:none;border:none;color:var(--muted);border-bottom:2px solid transparent;transition:.15s;white-space:nowrap}
 .tab-btn:hover{color:var(--text)}
 .tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
 .tab-panel{display:none;flex:1;overflow-y:auto;flex-direction:column}
 .tab-panel.active{display:flex;flex-direction:column}
 
-/* tool panel content */
-.tp{padding:12px}
-.tp-label{font-size:10.5px;color:var(--muted);margin-bottom:4px;display:block;text-transform:uppercase;letter-spacing:.5px}
-.tp-input{
-  width:100%;background:var(--bg3);color:var(--text);
-  border:1px solid var(--border);border-radius:5px;
-  padding:6px 9px;font-size:12.5px;outline:none;margin-bottom:6px;
-  font-family:var(--font);transition:.15s;
-}
+/* panel content */
+.tp{padding:10px 12px}
+.tp-sect{font-size:9.5px;text-transform:uppercase;letter-spacing:.7px;color:var(--muted2);padding:8px 12px 4px;font-weight:600}
+.tp-label{font-size:10.5px;color:var(--muted);display:block;margin-bottom:3px;margin-top:8px}
+.tp-label:first-child{margin-top:0}
+.tp-input{width:100%;background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:5px;padding:5px 8px;font-size:12px;outline:none;margin-bottom:5px;font-family:var(--font);transition:.15s}
 .tp-input:focus{border-color:var(--accent)}
-.tp-row{display:flex;gap:6px;margin-bottom:8px}
-.tp-btn{
-  flex:1;padding:6px;border-radius:5px;font-size:12px;font-weight:600;
-  cursor:pointer;border:1px solid var(--border);background:var(--bg3);
-  color:var(--muted);transition:.15s;
-}
+.tp-row{display:flex;gap:5px;margin-bottom:6px}
+.tp-btn{flex:1;padding:5px;border-radius:5px;font-size:11.5px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--muted);transition:.15s}
 .tp-btn:hover{color:var(--text);border-color:var(--muted)}
 .tp-btn.primary{background:var(--accent);color:#000;border-color:var(--accent)}
 .tp-btn.primary:hover{background:#79c0ff}
-.tp-btn.success{background:#1b3a2a;color:var(--green);border-color:#2d6a4f}
-.tp-btn.success:hover{background:#1f4a36}
-.tp-btn.danger{background:transparent;color:var(--red);border-color:#6e2020}
-.tp-btn.danger:hover{background:rgba(248,81,73,.1)}
+.tp-btn.success{background:#0d2b1a;color:var(--green);border-color:#1a4a2a}
+.tp-btn.success:hover{background:#0d3a22}
+.tp-btn.danger{color:var(--red);border-color:#6e1a1a}
+.tp-btn.danger:hover{background:#1a0505}
+.tp-btn.purple{background:#1a0d35;color:var(--purple);border-color:#3a1a6e}
+.tp-btn.purple:hover{background:#21104a}
 .tp-sep{border:none;border-top:1px solid var(--border);margin:10px 0}
-.tp-out{
-  background:var(--bg);border:1px solid var(--border);border-radius:5px;
-  padding:8px;font-size:11px;font-family:var(--mono);color:var(--muted);
-  max-height:100px;overflow-y:auto;margin-bottom:6px;white-space:pre-wrap;display:none;
-}
-.repo-item{
-  display:flex;align-items:center;gap:6px;padding:6px 0;
-  border-bottom:1px solid #1c2128;
-}
+.tp-out{background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:8px;font-size:11px;font-family:var(--mono);color:var(--muted);max-height:90px;overflow-y:auto;margin-bottom:5px;white-space:pre-wrap;display:none}
+
+/* repo items */
+.repo-item{display:flex;align-items:center;gap:5px;padding:5px 0;border-bottom:1px solid var(--border2)}
 .repo-dot{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0}
-.repo-name{flex:1;font-size:12px;color:var(--accent);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.file-tree{padding:8px;font-family:var(--mono);font-size:11.5px}
-.file-entry{color:var(--muted);padding:2px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.file-entry:hover{color:var(--text)}
-.section-title{font-size:10.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);padding:10px 12px 4px;font-weight:600}
+.repo-name{flex:1;font-size:11.5px;color:var(--accent);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* file tree */
+.file-tree{padding:8px 10px;font-family:var(--mono);font-size:11px}
+.ft-dir{color:var(--accent);padding:4px 0 2px;font-weight:600}
+.ft-file{color:var(--muted);padding:1px 0 1px 14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.ft-file:hover{color:var(--text)}
+
+/* fine-tune panel */
+.ft-stat{display:flex;justify-content:space-between;font-size:11px;padding:4px 0;border-bottom:1px solid var(--border2)}
+.ft-stat-val{font-family:var(--mono);color:var(--green)}
+.sample-item{background:var(--bg3);border:1px solid var(--border);border-radius:5px;padding:8px;margin-bottom:6px}
+.sample-prompt{font-size:11px;color:var(--text);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.sample-meta{display:flex;align-items:center;gap:6px;margin-top:5px}
+.sample-cat{font-size:9.5px;background:var(--bg4);color:var(--muted);padding:1px 6px;border-radius:10px}
+.stars{display:flex;gap:2px;font-size:13px;cursor:pointer}
+.star{color:var(--muted2);transition:.1s}
+.star.on{color:var(--orange)}
+.star:hover{color:var(--orange)}
+.sample-del{margin-left:auto;color:var(--muted2);font-size:11px;cursor:pointer;background:none;border:none;padding:0 2px}
+.sample-del:hover{color:var(--red)}
+.job-item{background:var(--bg3);border:1px solid var(--border);border-radius:5px;padding:8px;margin-bottom:6px}
+.job-name{font-size:12px;font-weight:600;color:var(--text)}
+.job-status{font-size:10px;padding:1px 6px;border-radius:10px;margin-left:6px}
+.job-status.done{background:#0d2b1a;color:var(--green)}
+.job-status.running{background:#2d2000;color:var(--orange)}
+.job-status.failed{background:#2d0d0d;color:var(--red)}
+.job-status.pending{background:var(--bg4);color:var(--muted)}
+
+/* folder indicator */
+.folder-badge{font-size:10px;font-family:var(--mono);color:var(--purple);background:#1a0d35;padding:2px 8px;border-radius:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
 </style>
 </head>
 <body>
 
-<!-- ════════════ LEFT: SESSIONS ════════════ -->
+<!-- ═══ LEFT SIDEBAR ═══ -->
 <div class="sidebar">
   <div class="sidebar-top">
-    <div class="logo">Local Agent <span>V11</span></div>
-    <button class="new-btn" onclick="newSession()">+ Yangi</button>
+    <div class="logo">Local Agent <sub>V12</sub></div>
+    <button class="icon-btn" onclick="newSession()">+ Yangi</button>
   </div>
 
-  <div class="sessions-list" id="session-list">
-    <div style="color:var(--muted);font-size:12px;padding:16px;text-align:center">Yuklanmoqda...</div>
+  <div class="sessions-scroll" id="session-list">
+    <div style="color:var(--muted2);font-size:11px;padding:16px;text-align:center">Yuklanmoqda...</div>
   </div>
 
-  <div class="sidebar-footer">
-    <div class="hw-row"><span class="hw-label">Model</span><span class="hw-val">qwen2.5:7b</span></div>
-    <div class="hw-row"><span class="hw-label">GPU</span><span class="hw-val">MX330 ×18</span></div>
-    <div class="hw-row"><span class="hw-label">RAM</span><span class="hw-val">12 GB</span></div>
-    <div class="hw-row"><span class="hw-label">Context</span><span class="hw-val">8192 tok</span></div>
+  <div class="sidebar-info">
+    <div class="info-row">
+      <span class="info-label">Ollama</span>
+      <span style="display:flex;align-items:center;gap:4px">
+        <span id="ollama-dot" style="width:7px;height:7px;border-radius:50%;background:var(--muted2);display:inline-block"></span>
+        <span id="ollama-txt" style="font-size:10px;color:var(--muted2)">...</span>
+      </span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Model</span>
+      <select class="model-sel" id="model-sel" onchange="changeModel(this.value)">
+        <option>loading...</option>
+      </select>
+    </div>
+    <div class="info-row"><span class="info-label">GPU</span><span class="info-val">MX330×18</span></div>
+    <div class="info-row"><span class="info-label">RAM</span><span class="info-val">12 GB</span></div>
   </div>
 </div>
 
-<!-- ════════════ CENTER: CHAT ════════════ -->
+<!-- ═══ CENTER CHAT ═══ -->
 <div class="main">
   <div class="topbar">
-    <div class="topbar-title" id="session-title">Session tanlang</div>
-    <span class="badge ready" id="status-badge">READY</span>
-    <span class="model-chip">qwen2.5-coder:7b · MX330</span>
+    <div style="display:flex;flex-direction:column;flex:1;min-width:0">
+      <div class="topbar-title" id="topbar-title">Session tanlang</div>
+      <div class="topbar-folder" id="topbar-folder"></div>
+    </div>
+    <span class="status-badge ready" id="status-badge">READY</span>
+    <span class="model-chip" id="model-chip">—</span>
   </div>
 
-  <!-- empty state shown when no session selected -->
+  <!-- empty state -->
   <div class="empty-state" id="empty-state">
     <div class="empty-icon">◎</div>
-    <div class="empty-title">Local Agent bilan ishla</div>
-    <div class="empty-sub">Yangi session yarating yoki mavjudini tanlang. Kod yaratish, savol berish, dastur o'rnatish.</div>
+    <div class="empty-title">Local Agent V12</div>
+    <div class="empty-sub">Har bir session o'z papkasida ishlaydi. DB'da saqlanadi. Fine-tune imkoniyati mavjud.</div>
     <div class="quick-grid">
-      <div class="quick-card" onclick="quickStart('Flask todo app yarat va GitHub\'ga push qil')">
-        <div class="quick-card-label">Flask App</div>
-        <div class="quick-card-sub">Todo app yaratish</div>
-      </div>
-      <div class="quick-card" onclick="quickStart('Python web scraper requests va beautifulsoup bilan')">
-        <div class="quick-card-label">Web Scraper</div>
-        <div class="quick-card-sub">Sahifadan ma\'lumot olish</div>
-      </div>
-      <div class="quick-card" onclick="quickStart('FastAPI REST API yarat')">
-        <div class="quick-card-label">REST API</div>
-        <div class="quick-card-sub">FastAPI server</div>
-      </div>
-      <div class="quick-card" onclick="quickStart('HTML CSS JS landing page modern dizayn')">
-        <div class="quick-card-label">Landing Page</div>
-        <div class="quick-card-sub">Zamonaviy dizayn</div>
-      </div>
+      <div class="quick-card" onclick="quickStart('Flask todo app yarat')"><div class="qc-title">Flask App</div><div class="qc-sub">Todo web app</div></div>
+      <div class="quick-card" onclick="quickStart('Python web scraper beautifulsoup bilan')"><div class="qc-title">Web Scraper</div><div class="qc-sub">Ma\'lumot olish</div></div>
+      <div class="quick-card" onclick="quickStart('FastAPI REST API yarat')"><div class="qc-title">REST API</div><div class="qc-sub">FastAPI server</div></div>
+      <div class="quick-card" onclick="quickStart('Python data analysis pandas matplotlib')"><div class="qc-title">Data Analysis</div><div class="qc-sub">Pandas + charts</div></div>
     </div>
   </div>
 
-  <!-- messages shown when session active -->
+  <!-- messages -->
   <div class="messages" id="messages" style="display:none"></div>
 
   <div class="input-area">
     <div class="input-box">
-      <textarea id="prompt"
-        placeholder="Savol bering yoki kod yaratishni buyuring..."
-        disabled
-        oninput="autoResize(this)"></textarea>
-      <div class="input-actions">
-        <button class="clear-btn" onclick="clearMsgs()" title="Tozala">⌫</button>
-        <button class="send-btn" id="send-btn" onclick="sendMsg()" disabled>Yuborish</button>
+      <textarea id="prompt" placeholder="Savol bering yoki loyiha yaratishni buyuring..." disabled oninput="autoResize(this)"></textarea>
+      <div class="inp-actions">
+        <button class="send-btn" id="send-btn" onclick="sendMsg()" disabled>↑</button>
       </div>
     </div>
-    <div class="input-hint">Enter = yuborish &nbsp;·&nbsp; Shift+Enter = yangi qator</div>
+    <div class="inp-hint">Enter = yuborish &nbsp;·&nbsp; Shift+Enter = yangi qator</div>
   </div>
 </div>
 
-<!-- ════════════ RIGHT: TOOLS PANEL ════════════ -->
-<div class="tools">
+<!-- ═══ RIGHT PANEL ═══ -->
+<div class="right">
   <div class="tabs">
-    <button class="tab-btn active" onclick="switchTab('repos')">Repos</button>
+    <button class="tab-btn active" onclick="switchTab('files')">Fayllar</button>
+    <button class="tab-btn" onclick="switchTab('finetune')">Fine-tune</button>
+    <button class="tab-btn" onclick="switchTab('repos')">Repos</button>
     <button class="tab-btn" onclick="switchTab('install')">O'rnat</button>
     <button class="tab-btn" onclick="switchTab('git')">Git</button>
-    <button class="tab-btn" onclick="switchTab('files')">Fayllar</button>
   </div>
 
-  <!-- REPOS tab -->
-  <div class="tab-panel active" id="tab-repos">
-    <div class="section-title">GitHub Repos</div>
+  <!-- FILES -->
+  <div class="tab-panel active" id="tab-files">
+    <div class="tp-sect">Session Papkasi</div>
+    <div id="session-folder-display" style="padding:0 12px 8px;font-size:10px;font-family:var(--mono);color:var(--muted2)">Session tanlanmagan</div>
+    <div class="file-tree" id="file-tree"><div style="color:var(--muted2)">Bo'sh</div></div>
+  </div>
+
+  <!-- FINE-TUNE -->
+  <div class="tab-panel" id="tab-finetune">
+    <div class="tp-sect" style="display:flex;align-items:center;justify-content:space-between">
+      <span>Samples</span>
+      <span id="ft-count" style="font-size:10px;color:var(--green);font-family:var(--mono)">0</span>
+    </div>
+    <div class="tp" style="padding-top:4px">
+      <div class="ft-stat"><span>Min sifat</span>
+        <select class="tp-input" id="ft-min-q" style="width:auto;margin:0;padding:2px 4px;font-size:11px">
+          <option value="3">★★★ (3+)</option>
+          <option value="4" selected>★★★★ (4+)</option>
+          <option value="5">★★★★★ (5 only)</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="ft-samples" style="padding:0 12px;max-height:200px;overflow-y:auto"></div>
+
+    <div class="tp">
+      <hr class="tp-sep" style="margin-top:4px">
+      <div class="tp-sect" style="padding:0 0 6px">Yangi Specialist Model</div>
+      <label class="tp-label">Model nomi</label>
+      <input class="tp-input" id="ft-name" placeholder="mening-agent-v1">
+      <label class="tp-label">Domain / Mutaxassislik</label>
+      <input class="tp-input" id="ft-domain" placeholder="Python web scraping" value="Python coding">
+      <label class="tp-label">Qo'shimcha ko'rsatmalar</label>
+      <input class="tp-input" id="ft-extra" placeholder="Always use type hints...">
+      <label class="tp-label">Asosiy model</label>
+      <select class="tp-input" id="ft-base-model" style="padding:4px 6px"></select>
+      <div class="tp-row">
+        <button class="tp-btn" onclick="exportSamples()">↓ JSONL</button>
+        <button class="tp-btn purple" onclick="createSpecialist()">✦ Yaratish</button>
+      </div>
+      <div class="tp-out" id="ft-out"></div>
+    </div>
+
+    <div class="tp-sect">Fine-tune Ishlar</div>
+    <div id="ft-jobs" style="padding:0 12px 10px"></div>
+  </div>
+
+  <!-- REPOS -->
+  <div class="tab-panel" id="tab-repos">
+    <div class="tp-sect">GitHub Repos</div>
     <div id="repo-list" style="padding:0 12px"></div>
     <div class="tp">
-      <hr class="tp-sep">
+      <hr class="tp-sep" style="margin-top:4px">
       <label class="tp-label">Repo nomi</label>
       <input class="tp-input" id="repo-name" placeholder="myapp">
       <label class="tp-label">GitHub URL</label>
@@ -386,10 +342,10 @@ textarea{
     </div>
   </div>
 
-  <!-- INSTALL tab -->
+  <!-- INSTALL -->
   <div class="tab-panel" id="tab-install">
-    <div class="tp">
-      <label class="tp-label" style="margin-top:4px">App ID yoki nomi</label>
+    <div class="tp" style="padding-top:12px">
+      <label class="tp-label">App ID yoki nomi</label>
       <input class="tp-input" id="install-id" placeholder="Telegram.TelegramDesktop">
       <div class="tp-row">
         <button class="tp-btn" onclick="searchApp()">🔍 Qidir</button>
@@ -397,471 +353,465 @@ textarea{
       </div>
       <div class="tp-out" id="install-out"></div>
       <hr class="tp-sep">
-      <div class="tp-label" style="margin-bottom:8px">Mashhur dasturlar</div>
-      <div style="display:flex;flex-direction:column;gap:5px">
-        <div class="tp-row" style="margin:0">
-          <button class="tp-btn" onclick="setInstall('Telegram.TelegramDesktop')" style="font-size:11px">Telegram</button>
-          <button class="tp-btn" onclick="setInstall('Google.Chrome')" style="font-size:11px">Chrome</button>
-        </div>
-        <div class="tp-row" style="margin:0">
-          <button class="tp-btn" onclick="setInstall('Microsoft.VisualStudioCode')" style="font-size:11px">VS Code</button>
-          <button class="tp-btn" onclick="setInstall('Git.Git')" style="font-size:11px">Git</button>
-        </div>
-        <div class="tp-row" style="margin:0">
-          <button class="tp-btn" onclick="setInstall('Spotify.Spotify')" style="font-size:11px">Spotify</button>
-          <button class="tp-btn" onclick="setInstall('Discord.Discord')" style="font-size:11px">Discord</button>
-        </div>
+      <div class="tp-sect" style="padding:0 0 8px">Mashhur dasturlar</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">
+        <button class="tp-btn" style="font-size:10.5px" onclick="setInstall('Telegram.TelegramDesktop')">Telegram</button>
+        <button class="tp-btn" style="font-size:10.5px" onclick="setInstall('Google.Chrome')">Chrome</button>
+        <button class="tp-btn" style="font-size:10.5px" onclick="setInstall('Microsoft.VisualStudioCode')">VS Code</button>
+        <button class="tp-btn" style="font-size:10.5px" onclick="setInstall('Git.Git')">Git</button>
+        <button class="tp-btn" style="font-size:10.5px" onclick="setInstall('Spotify.Spotify')">Spotify</button>
+        <button class="tp-btn" style="font-size:10.5px" onclick="setInstall('Discord.Discord')">Discord</button>
       </div>
     </div>
   </div>
 
-  <!-- GIT tab -->
+  <!-- GIT -->
   <div class="tab-panel" id="tab-git">
-    <div class="tp">
-      <label class="tp-label" style="margin-top:4px">Loyiha yo'li</label>
+    <div class="tp" style="padding-top:12px">
+      <label class="tp-label">Loyiha yo'li</label>
       <input class="tp-input" id="git-path" placeholder="./workspace/myapp">
       <label class="tp-label">GitHub URL (ixtiyoriy)</label>
       <input class="tp-input" id="git-remote" placeholder="https://github.com/user/repo.git">
       <label class="tp-label">Commit xabari</label>
-      <input class="tp-input" id="git-msg" placeholder="V11 update">
+      <input class="tp-input" id="git-msg" placeholder="V12 update">
       <button class="tp-btn primary" style="width:100%;margin-top:4px" onclick="pushToGit()">↑ Push to GitHub</button>
-    </div>
-  </div>
-
-  <!-- FILES tab -->
-  <div class="tab-panel" id="tab-files">
-    <div class="file-tree" id="file-list">
-      <div style="color:var(--muted);font-size:11px;padding:8px">Yuklanmoqda...</div>
     </div>
   </div>
 </div>
 
 <script>
-// ── config ────────────────────────────────────────────────────────────────
+// ── config ──────────────────────────────────────────────────────────────────
 marked.setOptions({
-  highlight: (code, lang) => {
-    if (lang && hljs.getLanguage(lang)) {
-      return hljs.highlight(code, {language: lang}).value;
-    }
-    return hljs.highlightAuto(code).value;
-  },
-  breaks: true,
-  gfm: true,
+  highlight:(code,lang)=>lang&&hljs.getLanguage(lang)?hljs.highlight(code,{language:lang}).value:hljs.highlightAuto(code).value,
+  breaks:true,gfm:true
 });
 
-// ── state ─────────────────────────────────────────────────────────────────
+// ── state ───────────────────────────────────────────────────────────────────
 let currentSession = null;
 
-// ── utils ─────────────────────────────────────────────────────────────────
-const $ = id => document.getElementById(id);
-function ts() { return new Date().toLocaleTimeString('uz', {hour:'2-digit',minute:'2-digit'}); }
-function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+// ── utils ────────────────────────────────────────────────────────────────────
+const $=id=>document.getElementById(id);
+const ts=()=>new Date().toLocaleTimeString('uz',{hour:'2-digit',minute:'2-digit'});
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
-function setStatus(label, cls) {
-  const b = $('status-badge');
-  b.textContent = label;
-  b.className = 'badge ' + cls;
+function setStatus(label,cls){const b=$('status-badge');b.textContent=label;b.className='status-badge '+cls}
+function autoResize(ta){ta.style.height='42px';ta.style.height=Math.min(ta.scrollHeight,180)+'px'}
+
+// ── markdown ─────────────────────────────────────────────────────────────────
+function renderMd(text){
+  return marked.parse(text||'').replace(/<pre><code/g,'<button class="copy-btn" onclick="copyCode(this)">copy</button><pre><code');
 }
-
-function autoResize(ta) {
-  ta.style.height = '44px';
-  ta.style.height = Math.min(ta.scrollHeight, 200) + 'px';
-}
-
-// ── markdown rendering ─────────────────────────────────────────────────────
-function renderMd(text) {
-  const html = marked.parse(text || '');
-  // inject copy buttons after rendering
-  return html.replace(/<pre><code/g,
-    `<button class="copy-btn" onclick="copyCode(this)">copy</button><pre><code`);
-}
-
-function copyCode(btn) {
-  const code = btn.nextElementSibling.querySelector('code');
-  navigator.clipboard.writeText(code.innerText).then(() => {
-    btn.textContent = 'copied!';
-    setTimeout(() => btn.textContent = 'copy', 2000);
+function copyCode(btn){
+  navigator.clipboard.writeText(btn.nextElementSibling.querySelector('code').innerText).then(()=>{
+    btn.textContent='copied!';setTimeout(()=>btn.textContent='copy',2000);
   });
 }
 
-// ── add message to chat ────────────────────────────────────────────────────
-function addMessage(content, role) {
-  const box = $('messages');
-  const row = document.createElement('div');
-  row.className = 'msg-row';
-
-  const avatar = role === 'user' ? 'U' : 'A';
-  const name   = role === 'user' ? 'Siz' : 'Agent';
-  const bodyClass = role === 'user' ? 'user' : 'assistant';
-
-  row.innerHTML = `
+// ── messages ─────────────────────────────────────────────────────────────────
+function addMsg(content, role){
+  const box=$('messages');
+  const row=document.createElement('div');
+  row.className='msg-row';
+  const av=role==='user'?'U':role==='system'?'S':'A';
+  const label=role==='user'?'Siz':role==='system'?'System':'Agent';
+  const bodyClass=role==='user'?'user':'assistant';
+  row.innerHTML=`
     <div class="msg-header">
-      <div class="msg-avatar ${role}">${avatar}</div>
-      <span class="msg-role">${name}</span>
-      <span class="msg-time-stamp">${ts()}</span>
+      <div class="msg-av ${role}">${av}</div>
+      <span class="msg-role">${label}</span>
+      <span class="msg-ts">${ts()}</span>
     </div>
-    <div class="msg-body ${bodyClass} md-content">${renderMd(content)}</div>
+    <div class="msg-body ${bodyClass} md">${renderMd(content)}</div>
   `;
   box.appendChild(row);
-  box.scrollTop = box.scrollHeight;
-  hljs.highlightAll();
+  box.scrollTop=box.scrollHeight;
+  box.querySelectorAll('pre code').forEach(b=>hljs.highlightElement(b));
 }
 
-function addLog(text, ok = true) {
-  const box = $('messages');
-  const div = document.createElement('div');
-  div.className = 'log-msg ' + (ok ? 'ok' : 'err');
-  const icon = ok ? '▸' : '✕';
-  div.innerHTML = `<span class="log-icon">${icon}</span>${esc(text)}`;
+function addLog(text,ok=true){
+  const box=$('messages');
+  const div=document.createElement('div');
+  div.className='log-line '+(ok?'ok':'err');
+  div.innerHTML=`<span class="log-icon">${ok?'▸':'✕'}</span>${esc(text)}`;
   box.appendChild(div);
-  box.scrollTop = box.scrollHeight;
+  box.scrollTop=box.scrollHeight;
 }
 
-function clearMsgs() { $('messages').innerHTML = ''; }
+function clearMsgs(){$('messages').innerHTML=''}
 
-// ── show / hide panels ─────────────────────────────────────────────────────
-function showChat() {
-  $('empty-state').style.display = 'none';
-  $('messages').style.display  = 'flex';
-  $('prompt').disabled = false;
-  $('send-btn').disabled = false;
+// ── show/hide ────────────────────────────────────────────────────────────────
+function showChat(){
+  $('empty-state').style.display='none';
+  $('messages').style.display='flex';
+  $('prompt').disabled=false;
+  $('send-btn').disabled=false;
+}
+function showEmpty(){
+  $('empty-state').style.display='flex';
+  $('messages').style.display='none';
+  $('prompt').disabled=true;
+  $('send-btn').disabled=true;
 }
 
-function showEmpty() {
-  $('empty-state').style.display = 'flex';
-  $('messages').style.display   = 'none';
-  $('prompt').disabled  = true;
-  $('send-btn').disabled = true;
-}
-
-// ── sessions ───────────────────────────────────────────────────────────────
-async function loadSessions() {
-  const res = await fetch('/api/sessions');
-  const sessions = await res.json();
-  const list = $('session-list');
-
-  if (!sessions.length) {
-    list.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:20px 14px;text-align:center">Hali session yo\'q</div>';
+// ── sessions ─────────────────────────────────────────────────────────────────
+async function loadSessions(){
+  const sessions=await(await fetch('/api/sessions')).json();
+  const list=$('session-list');
+  if(!sessions.length){
+    list.innerHTML='<div style="color:var(--muted2);font-size:11px;padding:20px;text-align:center">Session yo\'q.<br>+ Yangi bosing.</div>';
     return;
   }
-
-  list.innerHTML = sessions.map(s => {
-    const active = currentSession && currentSession.id === s.id;
-    const lastMsg = (s.messages || []).slice(-1)[0];
-    const preview = lastMsg ? lastMsg.content.slice(0, 45).replace(/\n/g,' ') : '...';
-    return `
-      <div class="sess-item ${active ? 'active' : ''}" onclick="selectSession('${s.id}')">
-        <span class="sess-icon">◎</span>
-        <div class="sess-body">
-          <div class="sess-name">${esc(s.name)}</div>
-          <div class="sess-time">${esc(preview)}</div>
-        </div>
-        <span class="sess-del" onclick="event.stopPropagation();delSession('${s.id}')">✕</span>
+  list.innerHTML=sessions.map(s=>{
+    const active=currentSession&&currentSession.id===s.id;
+    const folderShort=s.folder?(s.folder.split(/[/\\]/).slice(-2).join('/')):'';
+    const preview=s.last_msg?s.last_msg.slice(0,40):'...';
+    return`<div class="sess-item${active?' active':''}" onclick="selectSession('${s.id}')">
+      <span class="sess-icon">◎</span>
+      <div class="sess-body">
+        <div class="sess-name">${esc(s.name)}</div>
+        ${folderShort?`<div class="sess-folder">${esc(folderShort)}</div>`:''}
+        <div class="sess-preview">${esc(preview)}</div>
       </div>
-    `;
+      <div class="sess-actions">
+        <button class="sess-action" title="Papka o'zgartirish" onclick="event.stopPropagation();changeFolderDialog('${s.id}')">📁</button>
+        <button class="sess-action del" title="O'chirish" onclick="event.stopPropagation();deleteSession('${s.id}')">✕</button>
+      </div>
+    </div>`;
   }).join('');
 }
 
-async function newSession() {
-  const name = prompt('Session nomi (bo\'sh = avtomatik):', '') ?? null;
-  if (name === null) return;
-  const res = await fetch('/api/sessions', {
-    method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({name: name.trim() || null}),
+async function newSession(){
+  const name=prompt('Session nomi:','')??'';
+  if(name===null)return;
+  const folder=prompt('Papka yo\'li (bo\'sh = avtomatik):','')??'';
+  const res=await fetch('/api/sessions',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({name:name.trim()||null,folder:folder.trim()||null})
   });
-  const s = await res.json();
+  const s=await res.json();
   await loadSessions();
-  selectSession(s.id, s);
+  selectSession(s.id,s);
 }
 
-async function selectSession(sid, preloaded = null) {
-  const s = preloaded || await (await fetch('/api/sessions/' + sid)).json();
-  if (s.error) return;
-  currentSession = s;
-  $('session-title').textContent = s.name;
+async function selectSession(sid,preloaded=null){
+  const s=preloaded||(await(await fetch('/api/sessions/'+sid)).json());
+  if(s.error)return;
+  currentSession=s;
+  $('topbar-title').textContent=s.name;
+  $('topbar-folder').textContent=s.folder||'';
+  $('session-folder-display').textContent=s.folder||'(avtomatik)';
+  if(s.folder) $('git-path').value=s.folder;
   clearMsgs();
   showChat();
-  (s.messages || []).forEach(m => addMessage(m.content, m.role));
+  // Replay messages from DB
+  (s.messages||[]).forEach(m=>{
+    if(m.msg_type==='chat'){addMsg(m.content,m.role)}
+    else if(m.msg_type==='log'||m.msg_type==='tool'){addLog(m.content,true)}
+    else if(m.msg_type==='error'){addLog(m.content,false)}
+  });
   await loadSessions();
+  loadSessionFiles(sid);
+  loadFtSamples();
 }
 
-async function delSession(sid) {
-  if (!confirm('Sessionni o\'chirasizmi?')) return;
-  await fetch('/api/sessions/' + sid, {method:'DELETE'});
-  if (currentSession && currentSession.id === sid) {
-    currentSession = null;
-    $('session-title').textContent = 'Session tanlang';
-    showEmpty();
+async function deleteSession(sid){
+  if(!confirm('Sessionni o\'chirasizmi?'))return;
+  await fetch('/api/sessions/'+sid,{method:'DELETE'});
+  if(currentSession&&currentSession.id===sid){currentSession=null;$('topbar-title').textContent='Session tanlang';$('topbar-folder').textContent='';showEmpty()}
+  loadSessions();
+}
+
+async function changeFolderDialog(sid){
+  const folder=prompt('Yangi papka yo\'li:','')??'';
+  if(!folder.trim())return;
+  await fetch('/api/sessions/'+sid,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({folder:folder.trim()})});
+  if(currentSession&&currentSession.id===sid){
+    currentSession.folder=folder.trim();
+    $('topbar-folder').textContent=folder.trim();
+    $('session-folder-display').textContent=folder.trim();
+    loadSessionFiles(sid);
   }
   loadSessions();
 }
 
-// ── quick start ────────────────────────────────────────────────────────────
-async function quickStart(text) {
-  // auto-create session then send
-  const res = await fetch('/api/sessions', {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({name: text.slice(0,30)}),
-  });
-  const s = await res.json();
-  currentSession = s;
-  $('session-title').textContent = s.name;
-  clearMsgs();
-  showChat();
-  await loadSessions();
-  $('prompt').value = text;
-  sendMsg();
+async function quickStart(text){
+  const res=await fetch('/api/sessions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:text.slice(0,30)})});
+  const s=await res.json();
+  currentSession=s;$('topbar-title').textContent=s.name;$('topbar-folder').textContent=s.folder||'';
+  clearMsgs();showChat();await loadSessions();
+  $('prompt').value=text;sendMsg();
 }
 
-// ── send message ───────────────────────────────────────────────────────────
-async function sendMsg() {
-  if (!currentSession) return;
-  const text = $('prompt').value.trim();
-  if (!text) return;
-  $('prompt').value = '';
-  $('prompt').style.height = '44px';
-  addMessage(text, 'user');
+// ── send message ─────────────────────────────────────────────────────────────
+async function sendMsg(){
+  if(!currentSession)return;
+  const text=$('prompt').value.trim();
+  if(!text)return;
+  $('prompt').value='';$('prompt').style.height='42px';
+  addMsg(text,'user');
 
-  // heuristic: is it a coding task?
-  const codeKw = /yarat|yoz|qur|build|create|make|flask|fastapi|python|html|css|js|api|bot|scraper|calculator|loyiha|dastur|app|script|program/i;
-  if (codeKw.test(text)) {
-    await runCode(text);
-  } else {
-    await sendChat(text);
-  }
+  const codeKw=/yarat|yoz|qur|build|create|make|flask|fastapi|python|html|css|js|api|bot|scraper|calc|loyiha|dastur|app|script|program|tool/i;
+  if(codeKw.test(text)) await runCode(text);
+  else                   await sendChat(text);
 }
 
-async function sendChat(text) {
-  setStatus('THINKING', 'thinking');
-  $('send-btn').disabled = true;
-  try {
-    const res = await fetch('/api/chat', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({prompt: text, session_id: currentSession.id}),
-    });
-    const {reply, error} = await res.json();
-    if (error) addMessage('**Xato:** ' + error, 'assistant');
-    else addMessage(reply, 'assistant');
-  } catch(e) {
-    addMessage('**Server xatosi:** ' + e.message, 'assistant');
-  }
-  setStatus('READY', 'ready');
-  $('send-btn').disabled = false;
+async function sendChat(text){
+  setStatus('THINKING','thinking');$('send-btn').disabled=true;
+  try{
+    const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({prompt:text,session_id:currentSession.id})});
+    const {reply,error}=await r.json();
+    if(error) addMsg('**Xato:** '+error,'assistant');
+    else       addMsg(reply,'assistant');
+  }catch(e){addMsg('**Server xatosi:** '+e.message,'assistant')}
+  setStatus('READY','ready');$('send-btn').disabled=false;
 }
 
-async function runCode(text) {
-  setStatus('RUNNING', 'running');
-  $('send-btn').disabled = true;
+async function runCode(text){
+  setStatus('RUNNING','running');$('send-btn').disabled=true;
+  try{
+    const r=await fetch('/api/run',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({prompt:text,session_id:currentSession.id})});
+    const {task_id,error}=await r.json();
+    if(error){addMsg('**Xato:** '+error,'assistant');setStatus('ERROR','error');$('send-btn').disabled=false;return}
 
-  try {
-    const res = await fetch('/api/run', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({prompt: text, session_id: currentSession.id}),
-    });
-    const {task_id, error} = await res.json();
-    if (error) {
-      addMessage('**Xato:** ' + error, 'assistant');
-      setStatus('ERROR', 'error');
-      $('send-btn').disabled = false;
-      return;
-    }
-
-    const poll = setInterval(async () => {
-      try {
-        const sr = await fetch('/api/status/' + task_id);
-        const s  = await sr.json();
-        (s.log || []).forEach(line => {
-          const isErr = /xato|error|failed/i.test(line);
-          addLog(line, !isErr);
-        });
-
-        if (s.status === 'done') {
-          clearInterval(poll);
-          const r = s.result;
-          if (r && r.status === 'success') {
-            const files = (r.created_files || []).map(f => '`' + f + '`').join(', ');
-            const out   = r.result && r.result.stdout ? '\n\n```\n' + r.result.stdout.slice(0,400) + '\n```' : '';
-            addMessage(`**Muvaffaqiyat!** Yaratildi: ${files}${out}`, 'assistant');
-          } else {
-            const detail = r && r.result
-              ? (r.result.stderr || r.result.stdout || '').slice(0, 400)
-              : (r && r.error) || 'Noma\'lum xato';
-            addMessage(`**Bajarilmadi.**\n\n\`\`\`\n${detail}\n\`\`\``, 'assistant');
-          }
-          setStatus('READY', 'ready');
-          $('send-btn').disabled = false;
-          loadWorkspace();
-          // refresh session
-          const sr2 = await fetch('/api/sessions/' + currentSession.id);
-          currentSession = await sr2.json();
-          loadSessions();
-        } else if (s.status === 'error') {
-          clearInterval(poll);
-          addMessage(`**Xato:** ${s.error}`, 'assistant');
-          setStatus('ERROR', 'error');
-          $('send-btn').disabled = false;
+    const poll=setInterval(async()=>{
+      const sr=await fetch('/api/status/'+task_id);
+      const s=await sr.json();
+      (s.log||[]).forEach(line=>{
+        const isErr=/xato|error|failed/i.test(line);
+        addLog(line,!isErr);
+      });
+      if(s.status==='done'){
+        clearInterval(poll);
+        const res=s.result;
+        if(res&&res.status==='success'){
+          const files=(res.created_files||[]).map(f=>'`'+f+'`').join(', ');
+          const out=res.result&&res.result.stdout?'\n\n```\n'+res.result.stdout.slice(0,300)+'\n```':'';
+          addMsg('**Muvaffaqiyat!** '+files+out,'assistant');
+        } else {
+          const detail=res&&res.result?(res.result.stderr||res.result.stdout||'').slice(0,400):(res&&res.error)||'Noma\'lum xato';
+          addMsg('**Bajarilmadi.**\n\n```\n'+detail+'\n```','assistant');
         }
-      } catch(e) { /* ignore poll error */ }
-    }, 1000);
-
-  } catch(e) {
-    addMessage('**Server xatosi:** ' + e.message, 'assistant');
-    setStatus('ERROR', 'error');
-    $('send-btn').disabled = false;
+        setStatus('READY','ready');$('send-btn').disabled=false;
+        loadSessionFiles(currentSession.id);
+        loadFtSamples();
+      } else if(s.status==='error'){
+        clearInterval(poll);
+        addMsg('**Xato:** '+s.error,'assistant');
+        setStatus('ERROR','error');$('send-btn').disabled=false;
+      }
+    },1000);
+  }catch(e){
+    addMsg('**Server xatosi:** '+e.message,'assistant');
+    setStatus('ERROR','error');$('send-btn').disabled=false;
   }
 }
 
-// ── keyboard ───────────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
-  $('prompt').addEventListener('keydown', e => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
-  });
+document.addEventListener('DOMContentLoaded',()=>{
+  $('prompt').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg()}});
 });
 
-// ── tabs ───────────────────────────────────────────────────────────────────
-function switchTab(name) {
-  document.querySelectorAll('.tab-btn').forEach((b,i) => {
-    const tabs = ['repos','install','git','files'];
-    b.classList.toggle('active', tabs[i] === name);
-  });
-  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-  $('tab-' + name).classList.add('active');
-  if (name === 'files') loadWorkspace();
+// ── tabs ──────────────────────────────────────────────────────────────────────
+const TAB_IDS=['files','finetune','repos','install','git'];
+function switchTab(name){
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',TAB_IDS[i]===name));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  $('tab-'+name).classList.add('active');
+  if(name==='finetune'){loadFtSamples();loadFtJobs();loadBaseModels()}
+  if(name==='files'&&currentSession) loadSessionFiles(currentSession.id);
+  if(name==='repos') loadRepos();
 }
 
-// ── repos ──────────────────────────────────────────────────────────────────
-async function loadRepos() {
-  const repos = await (await fetch('/api/repos')).json();
-  const list  = $('repo-list');
-  if (!repos.length) {
-    list.innerHTML = '<div style="color:var(--muted);font-size:11.5px;padding:4px 0">Hali repo yo\'q</div>';
-    return;
-  }
-  list.innerHTML = repos.map(r => `
-    <div class="repo-item">
-      <div class="repo-dot"></div>
-      <span class="repo-name" title="${esc(r.url)}">${esc(r.name)}</span>
-      <button class="tp-btn success" style="padding:2px 8px;font-size:10.5px;flex:none"
-        onclick="pushRepoItem('${esc(r.name)}','${esc(r.local_path)}','${esc(r.url)}')">Push</button>
-      <button class="tp-btn danger" style="padding:2px 6px;font-size:10.5px;flex:none"
-        onclick="deleteRepo('${esc(r.name)}')">✕</button>
+// ── session files ─────────────────────────────────────────────────────────────
+async function loadSessionFiles(sid){
+  if(!sid){$('file-tree').innerHTML='<div style="color:var(--muted2)">Session tanlanmagan</div>';return}
+  const res=await(await fetch('/api/sessions/'+sid+'/files')).json();
+  const tree=$('file-tree');
+  $('session-folder-display').textContent=res.folder||'(auto)';
+  if(!res.files||!res.files.length){tree.innerHTML='<div style="color:var(--muted2)">Bo\'sh</div>';return}
+  const groups={};
+  res.files.forEach(f=>{
+    const parts=f.split('/');
+    const dir=parts.length>1?parts[0]:'';
+    if(!groups[dir])groups[dir]=[];
+    groups[dir].push(parts.slice(1).join('/')||f);
+  });
+  let html='';
+  Object.entries(groups).slice(0,30).forEach(([dir,items])=>{
+    if(dir)html+=`<div class="ft-dir">📁 ${esc(dir)}</div>`;
+    items.slice(0,20).forEach(f=>html+=`<div class="ft-file" style="padding-left:${dir?'20px':'4px'}">${esc(f)}</div>`);
+  });
+  tree.innerHTML=html;
+}
+
+// ── repos ─────────────────────────────────────────────────────────────────────
+async function loadRepos(){
+  const repos=await(await fetch('/api/repos')).json();
+  const list=$('repo-list');
+  if(!repos.length){list.innerHTML='<div style="color:var(--muted2);font-size:11px;padding:4px 0">Repo yo\'q</div>';return}
+  list.innerHTML=repos.map(r=>`<div class="repo-item">
+    <div class="repo-dot"></div>
+    <span class="repo-name" title="${esc(r.url)}">${esc(r.name)}</span>
+    <button class="tp-btn success" style="padding:2px 7px;font-size:10px;flex:none" onclick="pushRepoItem('${esc(r.name)}','${esc(r.local_path)}','${esc(r.url)}')">Push</button>
+    <button class="tp-btn danger"  style="padding:2px 6px;font-size:10px;flex:none" onclick="deleteRepo('${esc(r.name)}')">✕</button>
+  </div>`).join('');
+}
+async function addRepo(){
+  const name=$('repo-name').value.trim(),url=$('repo-url').value.trim();
+  if(!name||!url){alert('Nomi va URL kerak');return}
+  await fetch('/api/repos',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,url})});
+  $('repo-name').value='';$('repo-url').value='';loadRepos();
+}
+async function deleteRepo(name){await fetch('/api/repos/'+encodeURIComponent(name),{method:'DELETE'});loadRepos()}
+async function cloneRepo(){
+  const url=$('repo-url').value.trim(),name=$('repo-name').value.trim();
+  if(!url){alert('URL kerak');return}
+  addLog('Clone: '+url);
+  const r=await(await fetch('/api/repos/clone',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,name})})).json();
+  addLog(r.returncode===0?'Clone muvaffaqiyatli':'Clone xato: '+r.stderr,r.returncode===0);
+  if(currentSession)loadSessionFiles(currentSession.id);
+}
+async function pushRepoItem(name,localPath,remote){
+  const msg=prompt('Commit xabari:','Auto push V12')??'';if(!msg)return;
+  const r=await(await fetch('/api/git/push',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:localPath,remote,message:msg})})).json();
+  addLog(r.returncode===0?'Push OK: '+r.stdout.slice(0,100):'Push xato: '+r.stderr.slice(0,100),r.returncode===0);
+}
+
+// ── git ───────────────────────────────────────────────────────────────────────
+async function pushToGit(){
+  const path=$('git-path').value.trim(),remote=$('git-remote').value.trim()||null,msg=$('git-msg').value.trim()||'Auto commit V12';
+  if(!path){alert('Yo\'l kerak');return}
+  const r=await(await fetch('/api/git/push',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path,remote,message:msg})})).json();
+  addLog(r.returncode===0?'Git OK: '+r.stdout.slice(0,150):'Git xato: '+r.stderr.slice(0,150),r.returncode===0);
+}
+
+// ── install ───────────────────────────────────────────────────────────────────
+function setInstall(id){$('install-id').value=id}
+async function searchApp(){
+  const q=$('install-id').value.trim();if(!q)return;
+  const out=$('install-out');out.style.display='block';out.textContent='Qidirilmoqda...';
+  const r=await(await fetch('/api/install/search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:q})})).json();
+  out.textContent=r.stdout||r.stderr||'Natija yo\'q';
+}
+async function installApp(){
+  const appId=$('install-id').value.trim();if(!appId){alert('App ID kiriting');return}
+  const out=$('install-out');out.style.display='block';out.textContent=`O'rnatilmoqda: ${appId}...`;
+  addLog(`Winget: ${appId} o'rnatilmoqda...`);
+  const {task_id}=await(await fetch('/api/install/app',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({app_id:appId})})).json();
+  const poll=setInterval(async()=>{
+    const s=await(await fetch('/api/status/'+task_id)).json();
+    (s.log||[]).forEach(m=>out.textContent=m);
+    if(s.status==='done'){clearInterval(poll);const r=s.result;out.textContent=r.returncode===0?`✓ ${appId} o'rnatildi`:`Xato: ${r.stderr.slice(0,300)}`;addLog(out.textContent,r.returncode===0)}
+  },2000);
+}
+
+// ── ollama ────────────────────────────────────────────────────────────────────
+async function loadOllamaStatus(){
+  try{
+    const d=await(await fetch('/api/ollama/status')).json();
+    $('ollama-dot').style.background=d.online?'var(--green)':'var(--red)';
+    $('ollama-txt').textContent=d.online?'online':'offline';
+    $('ollama-txt').style.color=d.online?'var(--green)':'var(--red)';
+    const sel=$('model-sel');
+    sel.innerHTML=(d.models||[]).map(m=>`<option value="${m}"${m===d.current_model?' selected':''}>${m}</option>`).join('');
+    $('model-chip').textContent=d.current_model+' · MX330';
+  }catch(e){$('ollama-dot').style.background='var(--red)';$('ollama-txt').textContent='xato'}
+}
+async function changeModel(name){
+  if(!name)return;
+  await fetch('/api/ollama/model',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:name})});
+  $('model-chip').textContent=name+' · MX330';
+}
+
+// ── fine-tune ─────────────────────────────────────────────────────────────────
+async function loadFtSamples(){
+  const samples=await(await fetch('/api/finetune/samples')).json();
+  $('ft-count').textContent=samples.length;
+  const box=$('ft-samples');
+  if(!samples.length){box.innerHTML='<div style="color:var(--muted2);font-size:11px;padding:8px">Hali sample yo\'q.<br>Agent muvaffaqiyatli ishlasa avtomatik saqlanadi.</div>';return}
+  box.innerHTML=samples.slice(0,20).map(s=>`
+    <div class="sample-item" id="samp-${s.id}">
+      <div class="sample-prompt">${esc(s.prompt)}</div>
+      <div class="sample-meta">
+        <span class="sample-cat">${esc(s.category||'code')}</span>
+        <div class="stars" id="stars-${s.id}">
+          ${[1,2,3,4,5].map(n=>`<span class="star${n<=s.quality?' on':''}" onclick="rateSample(${s.id},${n})">★</span>`).join('')}
+        </div>
+        <button class="sample-del" onclick="deleteSample(${s.id})">✕</button>
+      </div>
     </div>
   `).join('');
 }
 
-async function addRepo() {
-  const name = $('repo-name').value.trim();
-  const url  = $('repo-url').value.trim();
-  if (!name || !url) { alert('Nomi va URL kerak'); return; }
-  await fetch('/api/repos', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,url})});
-  $('repo-name').value = ''; $('repo-url').value = '';
-  loadRepos();
+async function rateSample(id,q){
+  await fetch('/api/finetune/samples/'+id+'/rate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({quality:q})});
+  loadFtSamples();
 }
-async function deleteRepo(name) {
-  await fetch('/api/repos/' + encodeURIComponent(name), {method:'DELETE'});
-  loadRepos();
-}
-async function cloneRepo() {
-  const url  = $('repo-url').value.trim();
-  const name = $('repo-name').value.trim();
-  if (!url) { alert('URL kerak'); return; }
-  addLog('Clone boshlandi: ' + url);
-  const res = await fetch('/api/repos/clone',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,name})});
-  const r = await res.json();
-  addLog(r.returncode===0 ? 'Clone muvaffaqiyatli' : 'Clone xato: ' + r.stderr, r.returncode===0);
-  loadWorkspace();
-}
-async function pushRepoItem(name, localPath, remote) {
-  const msg = prompt('Commit xabari:', 'Auto push V11') ?? '';
-  if (!msg) return;
-  const res = await fetch('/api/git/push',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:localPath,remote,message:msg})});
-  const r = await res.json();
-  addLog(r.returncode===0 ? 'Push OK: ' + r.stdout.slice(0,100) : 'Push xato: ' + r.stderr.slice(0,100), r.returncode===0);
+async function deleteSample(id){
+  await fetch('/api/finetune/samples/'+id,{method:'DELETE'});loadFtSamples();
 }
 
-// ── git ────────────────────────────────────────────────────────────────────
-async function pushToGit() {
-  const path   = $('git-path').value.trim();
-  const remote = $('git-remote').value.trim() || null;
-  const msg    = $('git-msg').value.trim() || 'Auto commit V11';
-  if (!path) { alert('Yo\'l kerak'); return; }
-  const res = await fetch('/api/git/push',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path,remote,message:msg})});
-  const r = await res.json();
-  addLog(r.returncode===0 ? 'Push OK: ' + r.stdout.slice(0,150) : 'Xato: ' + r.stderr.slice(0,150), r.returncode===0);
+async function loadFtJobs(){
+  const jobs=await(await fetch('/api/finetune/jobs')).json();
+  const box=$('ft-jobs');
+  if(!jobs.length){box.innerHTML='<div style="color:var(--muted2);font-size:11px;padding:8px">Hali ish yo\'q</div>';return}
+  box.innerHTML=jobs.map(j=>`
+    <div class="job-item">
+      <div style="display:flex;align-items:center">
+        <span class="job-name">${esc(j.name)}</span>
+        <span class="job-status ${j.status}">${j.status}</span>
+      </div>
+      <div style="font-size:10px;color:var(--muted2);margin-top:4px">${esc(j.base_model)} · ${j.samples_count} sample · ${j.created_at.slice(0,16)}</div>
+      ${j.status==='done'?`<div style="font-size:10px;color:var(--green);margin-top:4px">ollama run ${esc(j.name)}</div>`:''}
+    </div>
+  `).join('');
 }
 
-// ── install ────────────────────────────────────────────────────────────────
-function setInstall(id) { $('install-id').value = id; }
-
-async function searchApp() {
-  const q = $('install-id').value.trim();
-  if (!q) return;
-  const out = $('install-out');
-  out.style.display = 'block';
-  out.textContent = 'Qidirilmoqda...';
-  const res = await fetch('/api/install/search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:q})});
-  const r = await res.json();
-  out.textContent = r.stdout || r.stderr || 'Natija yo\'q';
+async function loadBaseModels(){
+  const status=await(await fetch('/api/ollama/status')).json();
+  const sel=$('ft-base-model');
+  sel.innerHTML=(status.models||[]).map(m=>`<option value="${m}">${m}</option>`).join('');
 }
 
-async function installApp() {
-  const appId = $('install-id').value.trim();
-  if (!appId) { alert('App ID kiriting, masalan: Telegram.TelegramDesktop'); return; }
-  const out = $('install-out');
-  out.style.display = 'block';
-  out.textContent = `O'rnatilmoqda: ${appId}...`;
-  addLog(`Winget: ${appId} o'rnatilmoqda...`);
+async function exportSamples(){
+  const minQ=parseInt($('ft-min-q').value);
+  const out=$('ft-out');out.style.display='block';out.textContent='JSONL export qilinmoqda...';
+  const r=await(await fetch('/api/finetune/export',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({min_quality:minQ})})).json();
+  out.textContent=r.error?('Xato: '+r.error):(`Saqlandi: ${r.path}\nSonlar: ${r.count}`);
+}
 
-  const res = await fetch('/api/install/app',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({app_id:appId})});
-  const {task_id, error} = await res.json();
-  if (error) { out.textContent = 'Xato: ' + error; return; }
+async function createSpecialist(){
+  const name=$('ft-name').value.trim();
+  const domain=$('ft-domain').value.trim()||'Python coding';
+  const extra=$('ft-extra').value.trim();
+  const base=$('ft-base-model').value;
+  const minQ=parseInt($('ft-min-q').value);
+  if(!name){alert('Model nomi kerak');return}
+  const out=$('ft-out');out.style.display='block';out.textContent=`Specialist yaratilmoqda: ${name}...`;
 
-  const poll = setInterval(async () => {
-    const sr = await fetch('/api/status/' + task_id);
-    const s  = await sr.json();
-    (s.log || []).forEach(m => { out.textContent = m; });
-    if (s.status === 'done') {
+  const {task_id}=await(await fetch('/api/finetune/create',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({name,domain,extra,base_model:base,min_quality:minQ})})).json();
+
+  const poll=setInterval(async()=>{
+    const s=await(await fetch('/api/status/'+task_id)).json();
+    (s.log||[]).forEach(m=>out.textContent=m);
+    if(s.status==='done'){
       clearInterval(poll);
-      const r = s.result;
-      const ok = r.returncode === 0;
-      out.textContent = ok ? `✓ ${appId} o'rnatildi` : `Xato: ${r.stderr.slice(0,300)}`;
-      addLog(out.textContent, ok);
+      const r=s.result||{};
+      out.textContent=r.ok?`✓ Model tayyor: ollama run ${name}\nExamples: ${r.examples_used}`:`Xato: ${r.error}`;
+      loadFtJobs();
+      loadOllamaStatus();
     }
-  }, 2000);
+  },2000);
 }
 
-// ── workspace ──────────────────────────────────────────────────────────────
-async function loadWorkspace() {
-  const {files} = await (await fetch('/api/workspace')).json();
-  const tree = $('file-list');
-  if (!files || !files.length) {
-    tree.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:8px">Bo\'sh</div>';
-    return;
-  }
-  // group by directory
-  const groups = {};
-  files.forEach(f => {
-    const parts = f.replace(/\\/g,'/').split('/');
-    const dir   = parts.length > 1 ? parts[0] : '';
-    if (!groups[dir]) groups[dir] = [];
-    groups[dir].push(parts.slice(1).join('/') || f);
-  });
-  let html = '';
-  Object.entries(groups).slice(0,20).forEach(([dir, items]) => {
-    if (dir) html += `<div style="color:var(--accent);font-size:11px;margin-top:8px;margin-bottom:2px">📁 ${esc(dir)}</div>`;
-    items.slice(0,10).forEach(f => {
-      html += `<div class="file-entry" style="padding-left:${dir?'12px':'0'}">${esc(f)}</div>`;
-    });
-  });
-  tree.innerHTML = html;
-}
-
-// ── init ───────────────────────────────────────────────────────────────────
+// ── init ──────────────────────────────────────────────────────────────────────
 loadSessions();
 loadRepos();
-loadWorkspace();
-setInterval(loadWorkspace, 30000);
-setInterval(loadSessions, 15000);
+loadOllamaStatus();
+setInterval(loadSessions,20000);
+setInterval(loadOllamaStatus,30000);
 </script>
 </body>
 </html>

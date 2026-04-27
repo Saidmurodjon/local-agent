@@ -1,16 +1,18 @@
+"""Local Agent V12 — Flask API server."""
 import os
 import json
 import threading
-from flask import Flask, render_template, request, jsonify
 
 import config as _cfg
-from agent import (
-    run_agent, chat_reply,
-    create_session, get_session, list_sessions, delete_session,
-    _append_message,
+import db
+from flask import Flask, render_template, request, jsonify
+from agent import run_agent, chat_reply
+from tools.system_tool   import list_workspace, install_app_winget, search_winget
+from tools.git_tool      import git_commit_push, load_git_config, save_git_config
+from tools.finetune_tool import (
+    collect_sample, export_jsonl, create_ollama_specialist,
+    list_custom_models,
 )
-from tools.system_tool import list_workspace, install_app_winget, search_winget
-from tools.git_tool import git_commit_push, load_git_config, save_git_config
 
 app = Flask(__name__)
 task_status: dict = {}
@@ -18,12 +20,12 @@ task_status: dict = {}
 REPOS_FILE = "./workspace/.repos.json"
 
 
-# ──────────────── helpers ────────────────────────────────────────────────────
+# ── helpers ──────────────────────────────────────────────────────────────────
 
 def _load_repos() -> list:
     if os.path.exists(REPOS_FILE):
         try:
-            with open(REPOS_FILE, "r", encoding="utf-8") as f:
+            with open(REPOS_FILE, encoding="utf-8") as f:
                 return json.load(f)
         except Exception:
             pass
@@ -36,76 +38,106 @@ def _save_repos(repos: list):
         json.dump(repos, f, ensure_ascii=False, indent=2)
 
 
-# ──────────────── pages ──────────────────────────────────────────────────────
+# ── pages ─────────────────────────────────────────────────────────────────────
 
 @app.route("/")
 def index():
     return render_template("index.html")
 
 
-# ──────────────── sessions ───────────────────────────────────────────────────
+# ── sessions ──────────────────────────────────────────────────────────────────
 
 @app.route("/api/sessions", methods=["GET"])
 def get_sessions():
-    return jsonify(list_sessions())
+    return jsonify(db.session_list())
 
 
 @app.route("/api/sessions", methods=["POST"])
 def new_session():
-    name = (request.json or {}).get("name", "").strip() or None
-    session = create_session(name)
-    return jsonify(session)
+    data   = request.json or {}
+    name   = data.get("name", "").strip() or f"Session {len(db.session_list())+1}"
+    folder = data.get("folder", "").strip() or None
+    sess   = db.session_create(name, folder)
+    return jsonify(sess)
 
 
 @app.route("/api/sessions/<sid>", methods=["GET"])
-def get_session_detail(sid):
-    s = get_session(sid)
-    if not s:
+def get_session(sid):
+    sess = db.session_get(sid)
+    if not sess:
         return jsonify({"error": "not found"}), 404
-    return jsonify(s)
+    msgs = db.msg_list(sid)
+    return jsonify({**sess, "messages": msgs})
+
+
+@app.route("/api/sessions/<sid>", methods=["PATCH"])
+def update_session(sid):
+    data = request.json or {}
+    allowed = {k: v for k, v in data.items() if k in ("name", "folder")}
+    if "folder" in allowed and allowed["folder"]:
+        os.makedirs(allowed["folder"], exist_ok=True)
+    db.session_update(sid, **allowed)
+    return jsonify(db.session_get(sid))
 
 
 @app.route("/api/sessions/<sid>", methods=["DELETE"])
 def del_session(sid):
-    delete_session(sid)
+    db.session_delete(sid)
     return jsonify({"status": "deleted"})
 
 
-# ──────────────── run task ───────────────────────────────────────────────────
+@app.route("/api/sessions/<sid>/files")
+def session_files(sid):
+    sess = db.session_get(sid)
+    if not sess:
+        return jsonify({"files": []})
+    folder = sess.get("folder") or "./workspace"
+    files  = []
+    if os.path.exists(folder):
+        for root, dirs, fnames in os.walk(folder):
+            dirs[:] = [d for d in dirs if d not in ["__pycache__", ".git", "node_modules", ".venv"]]
+            for fn in fnames:
+                if fn.startswith("."):
+                    continue
+                rel = os.path.relpath(os.path.join(root, fn), folder)
+                files.append(rel.replace("\\", "/"))
+    return jsonify({"folder": folder, "files": files})
+
+
+# ── run agent ─────────────────────────────────────────────────────────────────
 
 @app.route("/api/run", methods=["POST"])
 def run_task():
-    data = request.json or {}
+    data       = request.json or {}
     user_input = data.get("prompt", "").strip()
     session_id = data.get("session_id") or None
     if not user_input:
         return jsonify({"error": "Prompt bo'sh"}), 400
 
-    task_id = str(len(task_status) + 1)
+    task_id = f"t{len(task_status)+1}"
     task_status[task_id] = {"status": "running", "log": []}
 
-    def background_run():
+    def bg():
         def on_log(msg):
             task_status[task_id]["log"].append(msg)
-
         try:
             result = run_agent(user_input, log_callback=on_log, session_id=session_id)
             task_status[task_id]["status"] = "done"
             task_status[task_id]["result"] = result
         except Exception as e:
             task_status[task_id]["status"] = "error"
-            task_status[task_id]["error"] = str(e)
+            task_status[task_id]["error"]  = str(e)
             if session_id:
-                _append_message(session_id, "assistant", f"Xato: {e}")
+                db.msg_add(session_id, "assistant", f"Xato: {e}", "error")
 
-    threading.Thread(target=background_run, daemon=True).start()
+    threading.Thread(target=bg, daemon=True).start()
     return jsonify({"task_id": task_id})
 
 
 @app.route("/api/status/<task_id>")
 def get_status(task_id):
     entry = task_status.get(task_id, {"status": "not_found"})
-    log = entry.pop("log", [])
+    log   = entry.pop("log", [])
     entry["log"] = []
     task_status[task_id] = entry
     resp = dict(entry)
@@ -113,45 +145,50 @@ def get_status(task_id):
     return jsonify(resp)
 
 
-# ──────────────── chat (non-code) ────────────────────────────────────────────
+# ── chat ──────────────────────────────────────────────────────────────────────
 
 @app.route("/api/chat", methods=["POST"])
 def chat():
-    data = request.json or {}
+    data       = request.json or {}
     user_input = data.get("prompt", "").strip()
     session_id = data.get("session_id") or None
     if not user_input:
         return jsonify({"error": "Prompt bo'sh"}), 400
+    if session_id:
+        db.msg_add(session_id, "user", user_input, "chat")
     try:
-        from agent import _session_context
-        ctx = _session_context(session_id)
-        reply = chat_reply(user_input, ctx)
-        _append_message(session_id, "user", user_input)
-        _append_message(session_id, "assistant", reply)
+        reply = chat_reply(user_input, session_id)
+        if session_id:
+            db.msg_add(session_id, "assistant", reply, "chat")
         return jsonify({"reply": reply})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
-# ──────────────── workspace ──────────────────────────────────────────────────
+@app.route("/api/sessions/<sid>/messages")
+def get_messages(sid):
+    return jsonify(db.msg_list(sid))
+
+
+# ── workspace ─────────────────────────────────────────────────────────────────
 
 @app.route("/api/workspace")
 def get_workspace():
     result = list_workspace()
-    files = [f for f in result["stdout"].split("\n") if f] if result["stdout"] else []
+    files  = [f for f in result["stdout"].split("\n") if f] if result["stdout"] else []
     return jsonify({"files": files})
 
 
-# ──────────────── git ────────────────────────────────────────────────────────
+# ── git ───────────────────────────────────────────────────────────────────────
 
 @app.route("/api/git/push", methods=["POST"])
-def push_to_github():
-    data = request.json or {}
-    path = data.get("path", "").strip()
-    message = data.get("message", "Auto commit from Local Agent")
-    remote = data.get("remote") or None
+def push_git():
+    data    = request.json or {}
+    path    = data.get("path", "").strip()
+    message = data.get("message", "Auto commit V12")
+    remote  = data.get("remote") or None
     if not path:
-        return jsonify({"returncode": 1, "stdout": "", "stderr": "Path required"}), 400
+        return jsonify({"returncode": 1, "stdout": "", "stderr": "path required"}), 400
     return jsonify(git_commit_push(path, message, remote))
 
 
@@ -163,7 +200,7 @@ def git_config():
     return jsonify({"status": "saved"})
 
 
-# ──────────────── repos ──────────────────────────────────────────────────────
+# ── repos ─────────────────────────────────────────────────────────────────────
 
 @app.route("/api/repos", methods=["GET"])
 def get_repos():
@@ -174,11 +211,10 @@ def get_repos():
 def add_repo():
     data = request.json or {}
     name = data.get("name", "").strip()
-    url = data.get("url", "").strip()
+    url  = data.get("url",  "").strip()
     if not name or not url:
         return jsonify({"error": "name and url required"}), 400
     repos = _load_repos()
-    # update if exists
     for r in repos:
         if r["name"] == name:
             r["url"] = url
@@ -191,32 +227,27 @@ def add_repo():
 
 @app.route("/api/repos/<name>", methods=["DELETE"])
 def del_repo(name):
-    repos = [r for r in _load_repos() if r["name"] != name]
-    _save_repos(repos)
+    _save_repos([r for r in _load_repos() if r["name"] != name])
     return jsonify({"status": "deleted"})
 
 
 @app.route("/api/repos/clone", methods=["POST"])
 def clone_repo():
     data = request.json or {}
-    url = data.get("url", "").strip()
+    url  = data.get("url",  "").strip()
     name = data.get("name", "").strip()
     if not url:
         return jsonify({"error": "url required"}), 400
     import subprocess
-    dest = f"./workspace/{name}" if name else "./workspace"
-    result = subprocess.run(
-        f'git clone "{url}" "{dest}"',
-        shell=True, capture_output=True, text=True, timeout=120
-    )
-    return jsonify({
-        "returncode": result.returncode,
-        "stdout": result.stdout[:2000],
-        "stderr": result.stderr[:1000],
-    })
+    dest   = f"./workspace/{name}" if name else "./workspace"
+    result = subprocess.run(f'git clone "{url}" "{dest}"',
+                            shell=True, capture_output=True, text=True, timeout=120)
+    return jsonify({"returncode": result.returncode,
+                    "stdout": result.stdout[:2000],
+                    "stderr": result.stderr[:1000]})
 
 
-# ──────────────── install ────────────────────────────────────────────────────
+# ── install ───────────────────────────────────────────────────────────────────
 
 @app.route("/api/install/search", methods=["POST"])
 def install_search():
@@ -228,11 +259,9 @@ def install_search():
 
 @app.route("/api/install/app", methods=["POST"])
 def install_app():
-    data = request.json or {}
-    app_id = data.get("app_id", "").strip()
+    app_id = (request.json or {}).get("app_id", "").strip()
     if not app_id:
         return jsonify({"error": "app_id required"}), 400
-
     task_id = f"install-{app_id}"
     task_status[task_id] = {"status": "running", "log": []}
 
@@ -241,16 +270,12 @@ def install_app():
         result = install_app_winget(app_id)
         task_status[task_id]["status"] = "done"
         task_status[task_id]["result"] = result
-        if result["returncode"] == 0:
-            task_status[task_id]["log"].append(f"Muvaffaqiyat: {app_id} o'rnatildi")
-        else:
-            task_status[task_id]["log"].append(f"Xato: {result['stderr'][:200]}")
 
     threading.Thread(target=do_install, daemon=True).start()
     return jsonify({"task_id": task_id})
 
 
-# ──────────────── ollama ─────────────────────────────────────────────────────
+# ── ollama ────────────────────────────────────────────────────────────────────
 
 @app.route("/api/ollama/status")
 def ollama_status():
@@ -258,11 +283,7 @@ def ollama_status():
     try:
         r = _req.get(_cfg.OLLAMA_BASE + "/api/tags", timeout=5)
         models = [m["name"] for m in r.json().get("models", [])] if r.ok else []
-        return jsonify({
-            "online": r.ok,
-            "current_model": _cfg.MODEL,
-            "models": models,
-        })
+        return jsonify({"online": r.ok, "current_model": _cfg.MODEL, "models": models})
     except Exception as e:
         return jsonify({"online": False, "current_model": _cfg.MODEL, "models": [], "error": str(e)})
 
@@ -276,9 +297,102 @@ def set_model():
     return jsonify({"status": "ok", "model": _cfg.MODEL})
 
 
-# ──────────────── main ───────────────────────────────────────────────────────
+# ── fine-tune ─────────────────────────────────────────────────────────────────
+
+@app.route("/api/finetune/samples", methods=["GET"])
+def ft_samples():
+    return jsonify(db.ft_list_samples())
+
+
+@app.route("/api/finetune/samples", methods=["POST"])
+def ft_add():
+    data = request.json or {}
+    sid = collect_sample(
+        prompt     = data.get("prompt", ""),
+        completion = data.get("completion", ""),
+        quality    = int(data.get("quality", 3)),
+        category   = data.get("category", "code"),
+    )
+    return jsonify({"id": sid})
+
+
+@app.route("/api/finetune/samples/<int:sid>/rate", methods=["POST"])
+def ft_rate(sid):
+    q = int((request.json or {}).get("quality", 3))
+    db.ft_rate_sample(sid, q)
+    return jsonify({"status": "ok"})
+
+
+@app.route("/api/finetune/samples/<int:sid>", methods=["DELETE"])
+def ft_delete(sid):
+    db.ft_delete_sample(sid)
+    return jsonify({"status": "deleted"})
+
+
+@app.route("/api/finetune/export", methods=["POST"])
+def ft_export():
+    data       = request.json or {}
+    min_q      = int(data.get("min_quality", 3))
+    output     = data.get("output_path") or None
+    result     = export_jsonl(output, min_q)
+    return jsonify(result)
+
+
+@app.route("/api/finetune/create", methods=["POST"])
+def ft_create():
+    data   = request.json or {}
+    name   = data.get("name",   "").strip()
+    domain = data.get("domain", "Python coding").strip()
+    extra  = data.get("extra",  "").strip()
+    base   = data.get("base_model", _cfg.MODEL)
+    min_q  = int(data.get("min_quality", 4))
+    if not name:
+        return jsonify({"error": "name required"}), 400
+
+    task_id = f"ft-{name}"
+    task_status[task_id] = {"status": "running", "log": [f"Specialist yaratilmoqda: {name}"]}
+
+    def do_create():
+        result = create_ollama_specialist(name, base, domain, extra, min_q)
+        task_status[task_id]["status"] = "done"
+        task_status[task_id]["result"] = result
+        if result.get("ok"):
+            task_status[task_id]["log"].append(f"Model tayyor: ollama run {name}")
+        else:
+            task_status[task_id]["log"].append(f"Xato: {result.get('error')}")
+
+    threading.Thread(target=do_create, daemon=True).start()
+    return jsonify({"task_id": task_id})
+
+
+@app.route("/api/finetune/jobs", methods=["GET"])
+def ft_jobs():
+    return jsonify(db.ft_list_jobs())
+
+
+@app.route("/api/finetune/custom_models", methods=["GET"])
+def ft_custom_models():
+    return jsonify(list_custom_models())
+
+
+# ── projects ──────────────────────────────────────────────────────────────────
+
+@app.route("/api/projects")
+def get_projects():
+    sid = request.args.get("session_id")
+    with db._conn() as con:
+        if sid:
+            rows = con.execute(
+                "SELECT * FROM projects WHERE session_id=? ORDER BY id DESC", (sid,)
+            ).fetchall()
+        else:
+            rows = con.execute("SELECT * FROM projects ORDER BY id DESC LIMIT 50").fetchall()
+    return jsonify([dict(r) for r in rows])
+
+
+# ── main ──────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     os.makedirs("./workspace", exist_ok=True)
-    print("Local Agent V11 starting on http://localhost:5000")
+    print(f"Local Agent V12  http://localhost:5000  model={_cfg.MODEL}")
     app.run(debug=False, host="0.0.0.0", port=5000, threaded=True)
