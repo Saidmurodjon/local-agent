@@ -16,6 +16,20 @@ from tools.system_tool import run_safe_command, install_package, list_workspace
 from tools.web_tool    import create_web_project
 from tools.finetune_tool import collect_sample
 
+# pip name differs from import name for some common packages
+_PKG_MAP = {
+    "bs4": "beautifulsoup4",
+    "sklearn": "scikit-learn",
+    "cv2": "opencv-python",
+    "PIL": "Pillow",
+    "yaml": "pyyaml",
+    "dotenv": "python-dotenv",
+    "serial": "pyserial",
+    "usb": "pyusb",
+    "gi": "PyGObject",
+    "wx": "wxPython",
+}
+
 OLLAMA_URL     = _cfg.OLLAMA_URL
 OLLAMA_OPTIONS = _cfg.OLLAMA_OPTIONS
 MAX_RETRIES    = _cfg.MAX_RETRIES
@@ -118,6 +132,39 @@ def sanitize_code(code: str) -> str:
         else:
             out.append(line)
     return "\n".join(out)
+
+
+def _install_requirements(req_path: str, log_fn) -> None:
+    """Install packages from requirements.txt."""
+    if not os.path.exists(req_path):
+        return
+    pkgs = []
+    with open(req_path, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith("#"):
+                pkgs.append(line)
+    if not pkgs:
+        return
+    log_fn(f"Paketlar o'rnatilmoqda: {', '.join(pkgs)}")
+    import subprocess, sys
+    result = subprocess.run(
+        [sys.executable, "-m", "pip", "install"] + pkgs + ["--quiet"],
+        capture_output=True, text=True, timeout=180,
+    )
+    if result.returncode == 0:
+        log_fn(f"O'rnatildi: {', '.join(pkgs)}")
+    else:
+        log_fn(f"pip xato: {result.stderr[:300]}")
+
+
+def _missing_module(error_text: str) -> str | None:
+    """Extract missing module name from ModuleNotFoundError."""
+    m = re.search(r"No module named ['\"]([^'\"]+)['\"]", error_text)
+    if m:
+        name = m.group(1).split(".")[0]
+        return _PKG_MAP.get(name, name)
+    return None
 
 
 def fix_code(code: str, error: str) -> str:
@@ -249,6 +296,10 @@ def run_agent(user_input: str, log_callback=None, session_id: str = None, model_
             open(run_path, "w", encoding="utf-8").write(clean)
             log("Server chaqiruvlari test uchun o'chirildi")
 
+    # Auto-install requirements before first run
+    req_path = os.path.join(project_dir, "requirements.txt")
+    _install_requirements(req_path, log)
+
     log(f"Ishga tushirilmoqda: {run_file}")
     result = run_python_file(run_path)
 
@@ -307,6 +358,15 @@ def run_agent(user_input: str, log_callback=None, session_id: str = None, model_
         log(f"Xato (urinish {attempt + 1}/{MAX_RETRIES}) — tuzatilmoqda...")
         broken_code = open(run_path, encoding="utf-8").read() if os.path.exists(run_path) else ""
         error_text  = result.get("stderr", "") or result.get("stdout", "")
+
+        # Auto-install missing module then retry without modifying code
+        missing = _missing_module(error_text)
+        if missing:
+            log(f"Modul topilmadi: {missing} — o'rnatilmoqda...")
+            install_package(missing)
+            result = run_python_file(run_path)
+            continue
+
         try:
             fixed = sanitize_code(fix_code(broken_code, error_text))
         except Exception as e:
