@@ -100,6 +100,12 @@ Error:
 {error}
 If code uses input() or infinite loop, remove them.
 Program must run automatically and finish.
+CRITICAL:
+- Do NOT create menu-based apps.
+- Do NOT use input().
+- Do NOT wait for user interaction.
+- The script must run demo actions automatically and exit.
+- For CLI-style apps, simulate demo data inside main.py.
 
 """
     raw = ask_llm(prompt)
@@ -182,27 +188,41 @@ def generate_project_manifest(user_input):
     prompt = f"""
 Return ONLY valid JSON.
 
-Create a small Python project.
+Create a GitHub-ready Python project.
 
 JSON format:
 {{
   "files": [
     {{
       "path": "main.py",
-      "content": "print('hello')"
+      "content": "print('demo')"
+    }},
+    {{
+      "path": "README.md",
+      "content": "# Project\\n\\nHow to run..."
+    }},
+    {{
+      "path": "requirements.txt",
+      "content": ""
+    }},
+    {{
+      "path": ".gitignore",
+      "content": "__pycache__/\\n*.pyc\\n.env\\n.venv/\\n"
     }}
   ],
   "run": "main.py"
 }}
 
 Rules:
-- Use only Python standard library.
-- Do not use external packages.
-- Include all required files.
-- Keep it simple and runnable.
-Program must print a demo output when run.
-Do not leave stdout empty.
-Include sample data and show result.
+- Use only Python standard library unless necessary.
+- Do NOT use input().
+- Do NOT use infinite loops.
+- Program must run and exit automatically.
+- Program must print demo output.
+- Include README with usage instructions.
+- Include requirements.txt.
+- Include .gitignore.
+- Keep project simple and runnable.
 
 Task:
 {user_input}
