@@ -4,232 +4,486 @@
 <meta charset="UTF-8">
 <title>Local Agent V11</title>
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Segoe UI', monospace; background: #0a0f1e; color: #e0e6ff; display: flex; height: 100vh; overflow: hidden; }
-.sidebar { width: 280px; background: #111827; border-right: 1px solid #1f2937; padding: 20px; overflow-y: auto; flex-shrink: 0; }
-.main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-.header { background: #111827; padding: 16px 24px; border-bottom: 1px solid #1f2937; display: flex; align-items: center; gap: 12px; }
-.header h1 { font-size: 1.2rem; color: #60a5fa; }
-.badge { background: #10b981; color: white; font-size: 0.7rem; padding: 2px 8px; border-radius: 20px; }
-.output { flex: 1; padding: 24px; overflow-y: auto; font-family: monospace; font-size: 0.85rem; }
-.log-line { padding: 4px 0; border-bottom: 1px solid #1a1f2e; word-break: break-word; }
-.log-line.success { color: #34d399; }
-.log-line.error { color: #f87171; }
-.log-line.info { color: #93c5fd; }
-.input-area { padding: 16px 24px; background: #111827; border-top: 1px solid #1f2937; display: flex; gap: 12px; }
-textarea { flex: 1; background: #1f2937; color: #e0e6ff; border: 1px solid #374151; border-radius: 8px; padding: 12px; font-family: monospace; font-size: 0.9rem; resize: none; height: 80px; outline: none; }
-textarea:focus { border-color: #3b82f6; }
-.btn { padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: all 0.2s; white-space: nowrap; }
-.btn-primary { background: #3b82f6; color: white; }
-.btn-primary:hover { background: #2563eb; }
-.btn-primary:disabled { background: #374151; cursor: not-allowed; }
-.btn-git { background: #1f2937; color: #60a5fa; border: 1px solid #374151; }
-.btn-clear { background: #1f2937; color: #9ca3af; border: 1px solid #374151; }
-.sidebar h3 { color: #9ca3af; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin: 16px 0 8px; }
-.file-item { font-size: 0.8rem; padding: 4px 8px; color: #9ca3af; border-radius: 4px; }
-.git-panel { background: #1f2937; border-radius: 8px; padding: 12px; margin-top: 8px; }
-.git-panel input { width: 100%; background: #111827; color: #e0e6ff; border: 1px solid #374151; border-radius: 4px; padding: 6px 8px; font-size: 0.8rem; margin: 4px 0; outline: none; }
-.git-panel input:focus { border-color: #3b82f6; }
-.stat { display: flex; justify-content: space-between; font-size: 0.75rem; color: #6b7280; padding: 4px 0; }
-.examples { display: flex; flex-direction: column; gap: 6px; }
-.example-btn { background: #1f2937; border: 1px solid #374151; color: #9ca3af; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 0.75rem; text-align: left; transition: all 0.2s; }
-.example-btn:hover { border-color: #3b82f6; color: #60a5fa; }
-.logo { color: #60a5fa; font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; }
-.logo-sub { color: #4b5563; font-size: 0.75rem; margin-bottom: 12px; }
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',monospace;background:#0a0f1e;color:#e0e6ff;display:flex;height:100vh;overflow:hidden;font-size:14px}
+
+/* ─── layout ─── */
+.left{width:240px;background:#111827;border-right:1px solid #1f2937;display:flex;flex-direction:column;flex-shrink:0}
+.center{flex:1;display:flex;flex-direction:column;min-width:0}
+.right{width:260px;background:#111827;border-left:1px solid #1f2937;display:flex;flex-direction:column;flex-shrink:0}
+
+/* ─── sidebar sections ─── */
+.panel-header{padding:10px 14px;font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;color:#4b5563;border-bottom:1px solid #1f2937;display:flex;align-items:center;justify-content:space-between}
+.panel-scroll{flex:1;overflow-y:auto}
+.panel-block{border-bottom:1px solid #1f2937}
+
+/* ─── sessions ─── */
+.session-item{padding:8px 14px;cursor:pointer;border-bottom:1px solid #1a2233;transition:.15s}
+.session-item:hover{background:#1f2937}
+.session-item.active{background:#1e3a5f;border-left:2px solid #3b82f6}
+.session-name{font-size:0.82rem;color:#c7d2fe;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.session-time{font-size:0.68rem;color:#4b5563;margin-top:2px}
+.session-del{float:right;color:#374151;cursor:pointer;font-size:0.75rem;padding:0 4px}
+.session-del:hover{color:#ef4444}
+
+/* ─── top bar ─── */
+.topbar{background:#111827;padding:10px 16px;border-bottom:1px solid #1f2937;display:flex;align-items:center;gap:10px}
+.topbar-title{font-size:0.95rem;font-weight:600;color:#60a5fa}
+.badge{font-size:0.65rem;padding:2px 8px;border-radius:20px;background:#10b981;color:#fff;font-weight:600}
+.model-tag{font-size:0.7rem;color:#4b5563;margin-left:auto}
+
+/* ─── messages ─── */
+.messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px}
+.msg{max-width:88%;padding:10px 14px;border-radius:10px;font-size:0.82rem;line-height:1.5;word-break:break-word}
+.msg.user{align-self:flex-end;background:#1e3a5f;color:#bfdbfe;border-bottom-right-radius:2px}
+.msg.assistant{align-self:flex-start;background:#1f2937;color:#d1d5db;border-bottom-left-radius:2px}
+.msg.log{align-self:flex-start;background:transparent;color:#6b7280;font-size:0.75rem;padding:2px 0}
+.msg.log.ok{color:#34d399}
+.msg.log.err{color:#f87171}
+.msg-time{font-size:0.65rem;color:#4b5563;margin-top:4px;text-align:right}
+
+/* ─── input ─── */
+.input-row{padding:12px 16px;background:#111827;border-top:1px solid #1f2937;display:flex;gap:8px;align-items:flex-end}
+textarea{flex:1;background:#1f2937;color:#e0e6ff;border:1px solid #374151;border-radius:8px;padding:10px 12px;font-family:inherit;font-size:0.85rem;resize:none;height:70px;outline:none;transition:.2s}
+textarea:focus{border-color:#3b82f6}
+.btn{padding:8px 14px;border:none;border-radius:7px;cursor:pointer;font-size:0.8rem;font-weight:600;transition:.15s;white-space:nowrap}
+.btn-blue{background:#3b82f6;color:#fff}.btn-blue:hover{background:#2563eb}.btn-blue:disabled{background:#374151;cursor:not-allowed}
+.btn-gray{background:#1f2937;color:#9ca3af;border:1px solid #374151}.btn-gray:hover{border-color:#3b82f6;color:#60a5fa}
+.btn-red{background:#1f2937;color:#f87171;border:1px solid #374151}.btn-red:hover{background:#7f1d1d}
+.btn-green{background:#1f2937;color:#34d399;border:1px solid #374151}.btn-green:hover{background:#064e3b}
+.btn-sm{padding:4px 10px;font-size:0.72rem;border-radius:5px}
+
+/* ─── right panel ─── */
+.right-section{padding:10px 12px;border-bottom:1px solid #1f2937}
+.right-section label{font-size:0.7rem;color:#6b7280;display:block;margin-bottom:4px;margin-top:8px}
+.right-section label:first-child{margin-top:0}
+input.field{width:100%;background:#0a0f1e;color:#e0e6ff;border:1px solid #374151;border-radius:5px;padding:5px 8px;font-size:0.78rem;outline:none}
+input.field:focus{border-color:#3b82f6}
+.repo-item{display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid #1a2233}
+.repo-name{flex:1;font-size:0.78rem;color:#93c5fd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stat-row{display:flex;justify-content:space-between;font-size:0.72rem;color:#4b5563;padding:3px 0}
+.stat-val{color:#34d399}
+
+/* ─── install log ─── */
+#install-out{background:#0a0f1e;border-radius:6px;padding:8px;font-size:0.72rem;color:#9ca3af;max-height:80px;overflow-y:auto;margin-top:6px;display:none}
+
+/* ─── new session btn ─── */
+.new-sess-btn{margin:10px;padding:7px;background:#1f2937;border:1px dashed #374151;color:#6b7280;border-radius:7px;cursor:pointer;font-size:0.75rem;text-align:center;transition:.15s}
+.new-sess-btn:hover{border-color:#3b82f6;color:#60a5fa}
+
+/* ─── empty state ─── */
+.empty{color:#374151;font-size:0.78rem;padding:14px;text-align:center}
 </style>
 </head>
 <body>
 
-<div class="sidebar">
-  <div class="logo">Local Agent</div>
-  <div class="logo-sub">V11 &bull; i5-10th &bull; 12GB &bull; MX330</div>
-
-  <h3>Quick Tasks</h3>
-  <div class="examples">
-    <button class="example-btn" onclick="setPrompt('flask todo app yaratib githubga push qil')">Flask Todo App</button>
-    <button class="example-btn" onclick="setPrompt('python calculator GUI tkinter bilan yarat')">Calculator GUI</button>
-    <button class="example-btn" onclick="setPrompt('web scraper requests beautifulsoup bilan')">Web Scraper</button>
-    <button class="example-btn" onclick="setPrompt('REST API FastAPI bilan yaratib test qil')">FastAPI Server</button>
-    <button class="example-btn" onclick="setPrompt('data visualization matplotlib pandas')">Data Viz</button>
-    <button class="example-btn" onclick="setPrompt('HTML CSS JS landing page modern dizayn')">Landing Page</button>
+<!-- ═══════════ LEFT: sessions ═══════════ -->
+<div class="left">
+  <div class="panel-header">
+    Sessions
+    <span style="color:#60a5fa;font-weight:700;font-size:0.85rem">Local Agent V11</span>
   </div>
-
-  <h3>Workspace Files</h3>
-  <div id="file-list"><div style="color:#4b5563;font-size:0.75rem;">Yuklanmoqda...</div></div>
-
-  <h3>GitHub Push</h3>
-  <div class="git-panel">
-    <input type="text" id="git-path" placeholder="./workspace/myapp" />
-    <input type="text" id="git-remote" placeholder="https://github.com/user/repo.git" />
-    <input type="text" id="git-message" placeholder="V11 upgrade" />
-    <button class="btn btn-git" style="width:100%;margin-top:8px" onclick="pushToGit()">Push to GitHub</button>
-  </div>
-
-  <h3>System</h3>
-  <div>
-    <div class="stat"><span>Model</span><span style="color:#34d399">qwen2.5-coder:7b</span></div>
-    <div class="stat"><span>GPU layers</span><span style="color:#34d399">18 (MX330)</span></div>
-    <div class="stat"><span>Context</span><span style="color:#34d399">8192 tokens</span></div>
-  </div>
+  <div class="panel-scroll" id="session-list"></div>
+  <div class="new-sess-btn" onclick="newSession()">+ Yangi Session</div>
 </div>
 
-<div class="main">
-  <div class="header">
-    <span>Agent Terminal</span>
+<!-- ═══════════ CENTER: chat ═══════════ -->
+<div class="center">
+  <div class="topbar">
+    <span class="topbar-title" id="session-title">Session tanlang</span>
     <span class="badge" id="status-badge">READY</span>
-    <div style="margin-left:auto;font-size:0.75rem;color:#4b5563" id="task-counter">0 tasks</div>
+    <span class="model-tag">qwen2.5-coder:7b &bull; MX330</span>
   </div>
 
-  <div class="output" id="output">
-    <div class="log-line info">Local Agent V11 tayyor. Buyruq bering...</div>
-    <div class="log-line info">Core i5 10th Gen | 12GB RAM | MX 330 2GB GPU | qwen2.5-coder:7b</div>
+  <div class="messages" id="messages">
+    <div class="msg log">Yangi session boshlang yoki mavjudini tanlang →</div>
   </div>
 
-  <div class="input-area">
-    <textarea id="prompt" placeholder="Dastur yaratish, web sahifa, GitHub push... (Enter = yuborish, Shift+Enter = yangi qator)"></textarea>
-    <div style="display:flex;flex-direction:column;gap:8px">
-      <button class="btn btn-primary" id="run-btn" onclick="runTask()">Run</button>
-      <button class="btn btn-clear" onclick="clearOutput()">Clear</button>
+  <div class="input-row">
+    <textarea id="prompt" placeholder="Kod yaratish, savol berish... (Enter = yuborish, Shift+Enter = yangi qator)" disabled></textarea>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <button class="btn btn-blue" id="run-btn" onclick="sendMessage()" disabled>Yuborish</button>
+      <button class="btn btn-gray" onclick="clearMessages()">Tozala</button>
     </div>
   </div>
 </div>
 
+<!-- ═══════════ RIGHT: tools ═══════════ -->
+<div class="right">
+  <div class="panel-scroll">
+
+    <!-- GitHub Repos -->
+    <div class="panel-block right-section">
+      <div class="panel-header" style="padding:6px 0 6px">GitHub Repos</div>
+      <div id="repo-list"><div class="empty">Repo yo'q</div></div>
+      <label>Repo nomi</label>
+      <input class="field" id="repo-name" placeholder="myapp" />
+      <label>GitHub URL</label>
+      <input class="field" id="repo-url" placeholder="https://github.com/user/repo.git" />
+      <div style="display:flex;gap:6px;margin-top:8px">
+        <button class="btn btn-green btn-sm" style="flex:1" onclick="addRepo()">Qo'sh</button>
+        <button class="btn btn-gray btn-sm" style="flex:1" onclick="cloneRepo()">Clone</button>
+      </div>
+    </div>
+
+    <!-- Git Push -->
+    <div class="panel-block right-section">
+      <div class="panel-header" style="padding:6px 0 6px">Git Push</div>
+      <label>Loyiha yo'li</label>
+      <input class="field" id="git-path" placeholder="./workspace/myapp" />
+      <label>Commit message</label>
+      <input class="field" id="git-message" placeholder="V11 upgrade" />
+      <button class="btn btn-gray btn-sm" style="width:100%;margin-top:8px" onclick="pushToGit()">Push to GitHub</button>
+    </div>
+
+    <!-- Install App -->
+    <div class="panel-block right-section">
+      <div class="panel-header" style="padding:6px 0 6px">Dastur O'rnatish (winget)</div>
+      <label>App ID yoki nomi</label>
+      <input class="field" id="install-id" placeholder="Telegram.TelegramDesktop" />
+      <div style="display:flex;gap:6px;margin-top:8px">
+        <button class="btn btn-gray btn-sm" style="flex:1" onclick="searchApp()">Qidir</button>
+        <button class="btn btn-blue btn-sm" style="flex:1" onclick="installApp()">O'rnat</button>
+      </div>
+      <div id="install-out"></div>
+    </div>
+
+    <!-- Workspace -->
+    <div class="panel-block right-section">
+      <div class="panel-header" style="padding:6px 0 6px">Workspace Fayllar</div>
+      <div id="file-list"><div class="empty">Bo'sh</div></div>
+    </div>
+
+    <!-- System info -->
+    <div class="right-section">
+      <div class="panel-header" style="padding:6px 0 6px">Tizim</div>
+      <div class="stat-row"><span>Model</span><span class="stat-val">qwen2.5-coder:7b</span></div>
+      <div class="stat-row"><span>GPU layers</span><span class="stat-val">18 (MX330)</span></div>
+      <div class="stat-row"><span>Context</span><span class="stat-val">8192 tok</span></div>
+      <div class="stat-row"><span>Retries</span><span class="stat-val">4x auto-fix</span></div>
+    </div>
+
+  </div>
+</div>
+
 <script>
-let taskCount = 0;
-let pollingIntervals = {};
+// ── state ──────────────────────────────────────────────────────────────────
+let currentSession = null;
 
-function setPrompt(text) {
-  document.getElementById('prompt').value = text;
-  document.getElementById('prompt').focus();
-}
+// ── utils ──────────────────────────────────────────────────────────────────
+function ts() { return new Date().toLocaleTimeString(); }
 
-function addLog(msg, type = 'info') {
-  const output = document.getElementById('output');
+function addMsg(content, role = 'log', extra = '') {
   const div = document.createElement('div');
-  div.className = 'log-line ' + type;
-  div.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
-  output.appendChild(div);
-  output.scrollTop = output.scrollHeight;
+  div.className = 'msg ' + role + (extra ? ' ' + extra : '');
+  div.textContent = content;
+  if (role === 'user' || role === 'assistant') {
+    const t = document.createElement('div');
+    t.className = 'msg-time';
+    t.textContent = ts();
+    div.appendChild(t);
+  }
+  const msgs = document.getElementById('messages');
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
 }
 
-function clearOutput() {
-  document.getElementById('output').innerHTML = '';
+function clearMessages() {
+  document.getElementById('messages').innerHTML = '';
 }
 
-async function runTask() {
+function setStatus(label, color) {
+  const b = document.getElementById('status-badge');
+  b.textContent = label;
+  b.style.background = color;
+}
+
+// ── sessions ───────────────────────────────────────────────────────────────
+async function loadSessions() {
+  const res = await fetch('/api/sessions');
+  const sessions = await res.json();
+  const list = document.getElementById('session-list');
+  if (!sessions.length) {
+    list.innerHTML = '<div class="empty">Hozircha session yo\'q</div>';
+    return;
+  }
+  list.innerHTML = sessions.map(s => `
+    <div class="session-item ${currentSession && currentSession.id === s.id ? 'active' : ''}"
+         onclick="selectSession('${s.id}')">
+      <span class="session-del" onclick="event.stopPropagation();deleteSession('${s.id}')">✕</span>
+      <div class="session-name">${escHtml(s.name)}</div>
+      <div class="session-time">${s.created_at}</div>
+    </div>
+  `).join('');
+}
+
+async function newSession() {
+  const name = prompt('Session nomi (bo\'sh qoldirsa avtomatik):') ?? '';
+  const res = await fetch('/api/sessions', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({name: name.trim() || null})
+  });
+  const s = await res.json();
+  await loadSessions();
+  selectSession(s.id);
+}
+
+async function selectSession(sid) {
+  const res = await fetch('/api/sessions/' + sid);
+  const s = await res.json();
+  currentSession = s;
+  document.getElementById('session-title').textContent = s.name;
+  document.getElementById('prompt').disabled = false;
+  document.getElementById('run-btn').disabled = false;
+  clearMessages();
+  // replay messages
+  (s.messages || []).forEach(m => addMsg(m.content, m.role));
+  await loadSessions();
+}
+
+async function deleteSession(sid) {
+  if (!confirm('Sessionni o\'chirasizmi?')) return;
+  await fetch('/api/sessions/' + sid, {method:'DELETE'});
+  if (currentSession && currentSession.id === sid) {
+    currentSession = null;
+    document.getElementById('session-title').textContent = 'Session tanlang';
+    clearMessages();
+    document.getElementById('prompt').disabled = true;
+    document.getElementById('run-btn').disabled = true;
+  }
+  await loadSessions();
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── send message ───────────────────────────────────────────────────────────
+async function sendMessage() {
+  if (!currentSession) { alert('Avval session tanlang'); return; }
   const prompt = document.getElementById('prompt').value.trim();
   if (!prompt) return;
-
-  const btn = document.getElementById('run-btn');
-  const badge = document.getElementById('status-badge');
-  btn.disabled = true;
-  badge.textContent = 'RUNNING';
-  badge.style.background = '#f59e0b';
-
-  addLog('Task: ' + prompt, 'info');
   document.getElementById('prompt').value = '';
+  addMsg(prompt, 'user');
+
+  const isCodeTask = /yarat|yoz|qur|build|create|make|flask|python|html|api|bot|scraper|calculator|loyiha|dastur|app/i.test(prompt);
+
+  if (isCodeTask) {
+    await runCodeTask(prompt);
+  } else {
+    await chatMessage(prompt);
+  }
+}
+
+async function chatMessage(prompt) {
+  setStatus('THINKING', '#f59e0b');
+  document.getElementById('run-btn').disabled = true;
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({prompt, session_id: currentSession.id})
+    });
+    const {reply, error} = await res.json();
+    if (error) { addMsg('Xato: ' + error, 'log', 'err'); }
+    else { addMsg(reply, 'assistant'); }
+  } catch(e) {
+    addMsg('Server xatosi: ' + e.message, 'log', 'err');
+  } finally {
+    setStatus('READY', '#10b981');
+    document.getElementById('run-btn').disabled = false;
+  }
+}
+
+async function runCodeTask(prompt) {
+  setStatus('RUNNING', '#f59e0b');
+  document.getElementById('run-btn').disabled = true;
 
   try {
     const res = await fetch('/api/run', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt }),
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({prompt, session_id: currentSession.id})
     });
-    const { task_id, error } = await res.json();
-    if (error) { addLog('Xato: ' + error, 'error'); resetBtn(); return; }
-
-    taskCount++;
-    document.getElementById('task-counter').textContent = taskCount + ' tasks';
+    const {task_id, error} = await res.json();
+    if (error) { addMsg('Xato: ' + error, 'log', 'err'); setStatus('ERROR','#ef4444'); return; }
 
     const poll = setInterval(async () => {
       try {
-        const statusRes = await fetch('/api/status/' + task_id);
-        const status = await statusRes.json();
+        const sr = await fetch('/api/status/' + task_id);
+        const s = await sr.json();
+        (s.log || []).forEach(m => addMsg(m, 'log'));
 
-        (status.log || []).forEach(msg => addLog(msg, 'info'));
-
-        if (status.status === 'done') {
+        if (s.status === 'done') {
           clearInterval(poll);
-          const r = status.result;
+          const r = s.result;
           if (r && r.status === 'success') {
-            addLog('Muvaffaqiyat! Fayllar: ' + (r.created_files || []).join(', '), 'success');
-            if (r.result && r.result.stdout) addLog(r.result.stdout.slice(0, 300), 'success');
-            if (r.git && r.git.stdout) addLog('Git: ' + r.git.stdout.slice(0, 120), 'success');
+            addMsg('Muvaffaqiyat! ' + (r.created_files || []).join(', '), 'log', 'ok');
+            if (r.result && r.result.stdout) addMsg(r.result.stdout.slice(0,300), 'assistant');
           } else {
-            addLog('Bajarilmadi: ' + JSON.stringify(r && r.result && r.result.stderr || ''), 'error');
+            addMsg('Bajarilmadi. ' + JSON.stringify(r && r.result && r.result.stderr || '').slice(0,200), 'log', 'err');
           }
-          resetBtn();
+          setStatus('READY', '#10b981');
+          document.getElementById('run-btn').disabled = false;
           loadWorkspace();
-        } else if (status.status === 'error') {
+          // refresh session messages
+          const sr2 = await fetch('/api/sessions/' + currentSession.id);
+          currentSession = await sr2.json();
+        } else if (s.status === 'error') {
           clearInterval(poll);
-          addLog('Xato: ' + status.error, 'error');
-          resetBtn('ERROR', '#ef4444');
+          addMsg('Xato: ' + s.error, 'log', 'err');
+          setStatus('ERROR', '#ef4444');
+          document.getElementById('run-btn').disabled = false;
         }
-      } catch (e) {
-        addLog('Poll xatosi: ' + e.message, 'error');
-      }
+      } catch(e) {}
     }, 1000);
-
-  } catch (e) {
-    addLog('Server xatosi: ' + e.message, 'error');
-    resetBtn('ERROR', '#ef4444');
+  } catch(e) {
+    addMsg('Server xatosi: ' + e.message, 'log', 'err');
+    setStatus('ERROR', '#ef4444');
+    document.getElementById('run-btn').disabled = false;
   }
 }
 
-function resetBtn(label = 'READY', color = '#10b981') {
-  document.getElementById('run-btn').disabled = false;
-  const badge = document.getElementById('status-badge');
-  badge.textContent = label;
-  badge.style.background = color;
-}
-
-async function loadWorkspace() {
-  try {
-    const res = await fetch('/api/workspace');
-    const { files } = await res.json();
-    const list = document.getElementById('file-list');
-    if (!files || files.length === 0) {
-      list.innerHTML = '<div style="color:#4b5563;font-size:0.75rem;">Bo\'sh</div>';
-    } else {
-      list.innerHTML = files.slice(0, 30).map(f =>
-        '<div class="file-item">' + f + '</div>'
-      ).join('');
-    }
-  } catch (e) {}
-}
-
-async function pushToGit() {
-  const path = document.getElementById('git-path').value.trim();
-  const remote = document.getElementById('git-remote').value.trim() || null;
-  const message = document.getElementById('git-message').value.trim() || 'Auto commit V11';
-
-  if (!path) { addLog('Path kiriting', 'error'); return; }
-  addLog('GitHub push: ' + path + (remote ? ' -> ' + remote : ' (local only)'), 'info');
-
-  try {
-    const res = await fetch('/api/git/push', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ path, remote, message }),
-    });
-    const result = await res.json();
-    if (result.returncode === 0) {
-      addLog('Git: ' + result.stdout.slice(0, 200), 'success');
-    } else {
-      addLog('Git xato: ' + result.stderr.slice(0, 200), 'error');
-    }
-  } catch (e) {
-    addLog('Push xatosi: ' + e.message, 'error');
-  }
-}
-
-document.getElementById('prompt').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    runTask();
-  }
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('prompt').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  });
 });
 
+// ── repos ──────────────────────────────────────────────────────────────────
+async function loadRepos() {
+  const res = await fetch('/api/repos');
+  const repos = await res.json();
+  const list = document.getElementById('repo-list');
+  if (!repos.length) { list.innerHTML = '<div class="empty">Repo yo\'q</div>'; return; }
+  list.innerHTML = repos.map(r => `
+    <div class="repo-item">
+      <span class="repo-name" title="${escHtml(r.url)}">${escHtml(r.name)}</span>
+      <button class="btn btn-green btn-sm" onclick="pushRepoByName('${escHtml(r.name)}','${escHtml(r.local_path)}','${escHtml(r.url)}')">Push</button>
+      <button class="btn btn-red btn-sm" onclick="deleteRepo('${escHtml(r.name)}')">✕</button>
+    </div>
+  `).join('');
+}
+
+async function addRepo() {
+  const name = document.getElementById('repo-name').value.trim();
+  const url  = document.getElementById('repo-url').value.trim();
+  if (!name || !url) { alert('Nomi va URL kerak'); return; }
+  await fetch('/api/repos', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({name, url})
+  });
+  document.getElementById('repo-name').value = '';
+  document.getElementById('repo-url').value = '';
+  loadRepos();
+}
+
+async function deleteRepo(name) {
+  await fetch('/api/repos/' + encodeURIComponent(name), {method:'DELETE'});
+  loadRepos();
+}
+
+async function cloneRepo() {
+  const url  = document.getElementById('repo-url').value.trim();
+  const name = document.getElementById('repo-name').value.trim();
+  if (!url) { alert('URL kerak'); return; }
+  addMsg('Clone: ' + url, 'log');
+  const res = await fetch('/api/repos/clone', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({url, name})
+  });
+  const r = await res.json();
+  addMsg(r.returncode === 0 ? 'Clone muvaffaqiyatli' : 'Clone xato: ' + r.stderr, 'log', r.returncode===0?'ok':'err');
+  loadWorkspace();
+}
+
+async function pushRepoByName(name, localPath, remote) {
+  const msg = prompt(`Commit message (${name}):`, 'Auto push V11') ?? '';
+  if (!msg) return;
+  const res = await fetch('/api/git/push', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({path: localPath, remote, message: msg})
+  });
+  const r = await res.json();
+  addMsg(r.returncode===0 ? 'Push OK: '+r.stdout.slice(0,120) : 'Push xato: '+r.stderr.slice(0,120), 'log', r.returncode===0?'ok':'err');
+}
+
+// ── git push panel ─────────────────────────────────────────────────────────
+async function pushToGit() {
+  const path    = document.getElementById('git-path').value.trim();
+  const message = document.getElementById('git-message').value.trim() || 'Auto commit V11';
+  if (!path) { alert('Yo\'l kerak'); return; }
+
+  // find remote from saved repos
+  const repos = await (await fetch('/api/repos')).json();
+  const repo  = repos.find(r => path.includes(r.name));
+  const remote = repo ? repo.url : null;
+
+  const res = await fetch('/api/git/push', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({path, message, remote})
+  });
+  const r = await res.json();
+  addMsg(r.returncode===0 ? 'Git OK: '+r.stdout.slice(0,200) : 'Git xato: '+r.stderr.slice(0,200), 'log', r.returncode===0?'ok':'err');
+}
+
+// ── install app ────────────────────────────────────────────────────────────
+async function searchApp() {
+  const q = document.getElementById('install-id').value.trim();
+  if (!q) return;
+  const out = document.getElementById('install-out');
+  out.style.display = 'block';
+  out.textContent = 'Qidirilmoqda...';
+  const res = await fetch('/api/install/search', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({query: q})
+  });
+  const r = await res.json();
+  out.textContent = r.stdout || r.stderr || 'Natija yo\'q';
+}
+
+async function installApp() {
+  const appId = document.getElementById('install-id').value.trim();
+  if (!appId) { alert('App ID kiriting'); return; }
+  const out = document.getElementById('install-out');
+  out.style.display = 'block';
+  out.textContent = `O'rnatilmoqda: ${appId}...`;
+
+  const res = await fetch('/api/install/app', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({app_id: appId})
+  });
+  const {task_id, error} = await res.json();
+  if (error) { out.textContent = 'Xato: ' + error; return; }
+
+  const poll = setInterval(async () => {
+    const sr = await fetch('/api/status/' + task_id);
+    const s  = await sr.json();
+    const lines = (s.log || []);
+    if (lines.length) out.textContent = lines.join('\n');
+    if (s.status === 'done') {
+      clearInterval(poll);
+      const r = s.result;
+      out.textContent = r.returncode === 0
+        ? `✓ ${appId} o'rnatildi`
+        : `Xato: ${r.stderr.slice(0,300)}`;
+      addMsg(out.textContent, 'log', r.returncode===0?'ok':'err');
+    }
+  }, 2000);
+}
+
+// ── workspace ──────────────────────────────────────────────────────────────
+async function loadWorkspace() {
+  const res = await fetch('/api/workspace');
+  const {files} = await res.json();
+  const list = document.getElementById('file-list');
+  if (!files || !files.length) { list.innerHTML = '<div class="empty">Bo\'sh</div>'; return; }
+  list.innerHTML = files.slice(0, 40).map(f =>
+    `<div style="font-size:0.72rem;color:#6b7280;padding:2px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(f)}</div>`
+  ).join('');
+}
+
+// ── init ───────────────────────────────────────────────────────────────────
+loadSessions();
+loadRepos();
 loadWorkspace();
 setInterval(loadWorkspace, 30000);
 </script>

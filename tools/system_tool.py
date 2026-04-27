@@ -9,6 +9,8 @@ SAFE_COMMANDS = [
     "dir", "ls", "mkdir", "echo",
     "npm init", "npm start", "npm run build",
     "flask run", "uvicorn", "python -m http.server",
+    "winget install", "winget search", "winget show", "winget list",
+    "choco install", "scoop install",
 ]
 
 
@@ -34,6 +36,7 @@ def run_safe_command(cmd: str, safe: bool = True) -> dict:
 
 
 def install_package(package: str) -> dict:
+    """Install Python package via pip."""
     result = subprocess.run(
         [sys.executable, "-m", "pip", "install", package, "--quiet"],
         capture_output=True, text=True, timeout=120
@@ -45,6 +48,43 @@ def install_package(package: str) -> dict:
     }
 
 
+def install_app_winget(app_id: str) -> dict:
+    """Install a Windows application via winget."""
+    cmd = (
+        f'winget install --id "{app_id}" '
+        f"--accept-source-agreements --accept-package-agreements --silent"
+    )
+    try:
+        result = subprocess.run(
+            cmd, shell=True, capture_output=True, text=True, timeout=300
+        )
+        return {
+            "returncode": result.returncode,
+            "stdout": result.stdout[:3000],
+            "stderr": result.stderr[:1000],
+        }
+    except subprocess.TimeoutExpired:
+        return {"returncode": -1, "stdout": "", "stderr": "Install timed out (5 min)"}
+    except Exception as e:
+        return {"returncode": -1, "stdout": "", "stderr": str(e)}
+
+
+def search_winget(query: str) -> dict:
+    """Search winget for an app."""
+    try:
+        result = subprocess.run(
+            f'winget search "{query}"',
+            shell=True, capture_output=True, text=True, timeout=30
+        )
+        return {
+            "returncode": result.returncode,
+            "stdout": result.stdout[:4000],
+            "stderr": result.stderr[:500],
+        }
+    except Exception as e:
+        return {"returncode": -1, "stdout": "", "stderr": str(e)}
+
+
 def list_workspace() -> dict:
     files = []
     workspace = "./workspace"
@@ -52,6 +92,8 @@ def list_workspace() -> dict:
         for root, dirs, filenames in os.walk(workspace):
             dirs[:] = [d for d in dirs if d not in ["__pycache__", ".git", "node_modules", ".venv"]]
             for f in filenames:
+                if f.startswith("."):
+                    continue
                 rel_path = os.path.relpath(os.path.join(root, f), workspace)
                 files.append(rel_path)
     return {"returncode": 0, "stdout": "\n".join(files), "stderr": ""}

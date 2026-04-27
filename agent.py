@@ -46,7 +46,80 @@ RULES:
 """
 
 MEMORY_FILE = os.path.join(WORKSPACE_DIR, ".agent_memory.json")
+SESSIONS_FILE = os.path.join(WORKSPACE_DIR, ".sessions.json")
 
+# In-memory sessions store: { session_id: { id, name, messages[], created_at } }
+_sessions: dict = {}
+
+
+# ──────────────────────────── sessions ───────────────────────────────────────
+
+def _load_sessions_from_disk():
+    global _sessions
+    if os.path.exists(SESSIONS_FILE):
+        try:
+            with open(SESSIONS_FILE, "r", encoding="utf-8") as f:
+                _sessions = json.load(f)
+        except Exception:
+            _sessions = {}
+
+
+def _save_sessions_to_disk():
+    os.makedirs(WORKSPACE_DIR, exist_ok=True)
+    with open(SESSIONS_FILE, "w", encoding="utf-8") as f:
+        json.dump(_sessions, f, ensure_ascii=False, indent=2)
+
+
+_load_sessions_from_disk()
+
+
+def create_session(name: str = None) -> dict:
+    sid = str(int(time.time() * 1000))
+    session = {
+        "id": sid,
+        "name": name or f"Session {len(_sessions) + 1}",
+        "messages": [],
+        "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+    }
+    _sessions[sid] = session
+    _save_sessions_to_disk()
+    return session
+
+
+def get_session(sid: str) -> dict | None:
+    return _sessions.get(sid)
+
+
+def list_sessions() -> list:
+    return sorted(_sessions.values(), key=lambda s: s["created_at"], reverse=True)
+
+
+def delete_session(sid: str):
+    _sessions.pop(sid, None)
+    _save_sessions_to_disk()
+
+
+def _append_message(sid: str, role: str, content: str):
+    if sid and sid in _sessions:
+        _sessions[sid]["messages"].append({
+            "role": role,
+            "content": content,
+            "time": time.strftime("%H:%M:%S"),
+        })
+        _save_sessions_to_disk()
+
+
+def _session_context(sid: str) -> str:
+    if not sid or sid not in _sessions:
+        return ""
+    msgs = _sessions[sid]["messages"][-8:]  # last 8 messages
+    ctx = ""
+    for m in msgs:
+        ctx += f"\n{m['role'].upper()}: {m['content'][:400]}\n"
+    return ctx
+
+
+# ──────────────────────────── memory ─────────────────────────────────────────
 
 def load_memory():
     if not os.path.exists(MEMORY_FILE):
@@ -75,7 +148,18 @@ def remember_project(user_input, files, run_file, result):
     save_memory(memory)
 
 
-def ask_llm(prompt):
+# ──────────────────────────── LLM helpers ────────────────────────────────────
+
+def _parse_ollama(response) -> str:
+    data = response.json()
+    if "error" in data:
+        raise RuntimeError(f"Ollama: {data['error']}")
+    if "response" not in data:
+        raise RuntimeError(f"Ollama unexpected response: {list(data.keys())}")
+    return data["response"]
+
+
+def ask_llm(prompt: str) -> str:
     response = requests.post(OLLAMA_URL, json={
         "model": MODEL,
         "prompt": prompt,
@@ -83,10 +167,11 @@ def ask_llm(prompt):
         "options": OLLAMA_OPTIONS,
         "keep_alive": "30m",
     }, timeout=180)
-    return response.json()["response"]
+    response.raise_for_status()
+    return _parse_ollama(response)
 
 
-def ask_llm_json(prompt):
+def ask_llm_json(prompt: str) -> dict:
     response = requests.post(OLLAMA_URL, json={
         "model": MODEL,
         "prompt": prompt,
@@ -95,7 +180,8 @@ def ask_llm_json(prompt):
         "options": OLLAMA_OPTIONS,
         "keep_alive": "30m",
     }, timeout=180)
-    raw = response.json()["response"].strip()
+    response.raise_for_status()
+    raw = _parse_ollama(response).strip()
     if raw.startswith("```"):
         raw = raw.replace("```json", "").replace("```", "").strip()
     return json.loads(raw)
@@ -106,16 +192,15 @@ def extract_code(raw: str) -> str:
         raw = raw.split("```")[1]
         if raw.startswith("python"):
             raw = raw.replace("python", "", 1)
-    lines = raw.splitlines()
-    code_lines = []
-    for line in lines:
+    lines = []
+    for line in raw.splitlines():
         if line.strip().lower().startswith("it seems"):
             break
-        code_lines.append(line)
-    return "\n".join(code_lines).strip()
+        lines.append(line)
+    return "\n".join(lines).strip()
 
 
-def fix_code(code, error):
+def fix_code(code: str, error: str) -> str:
     prompt = f"""Fix this Python code. Return ONLY corrected code. No explanation.
 
 Code:
@@ -126,22 +211,20 @@ Error:
 
 CRITICAL:
 - Do NOT use input() or infinite loops
-- Do NOT create menu-based apps
 - Script must run demo actions automatically and exit
 """
-    raw = ask_llm(prompt)
-    return extract_code(raw)
+    return extract_code(ask_llm(prompt))
 
 
-def generate_project_manifest(user_input):
+def generate_project_manifest(user_input: str, session_context: str = "") -> dict:
+    ctx_block = f"\nConversation context:\n{session_context}\n" if session_context else ""
     prompt = f"""Return ONLY valid JSON. No explanation.
-
+{ctx_block}
 Create a complete GitHub-ready Python project for this task:
 "{user_input}"
 
 Hardware: Intel Core i5 10th Gen, 12GB RAM, NVIDIA MX 330 2GB
-Do NOT use heavy ML models (no PyTorch, no TensorFlow).
-Use only CPU-friendly libraries.
+Do NOT use PyTorch, TensorFlow, or other heavy ML libraries.
 
 JSON format:
 {{
@@ -156,26 +239,46 @@ JSON format:
 }}
 
 Rules:
-- project_name must be lowercase with hyphens (e.g. "todo-app", "web-scraper")
+- project_name must be lowercase with hyphens (e.g. "todo-app")
 - main.py must run automatically and print demo output
 - Do NOT use input() or infinite loops
-- Include requirements.txt with ALL dependencies
-- For web apps: use Flask on port 5001 (not 5000, that's the agent UI)
-- Always add README.md with setup instructions
-- Keep code clean and functional
+- For web apps: use Flask on port 5001 (agent UI is on 5000)
+- Always include README.md and requirements.txt
 """
     return ask_llm_json(prompt)
 
 
-def run_agent(user_input: str, log_callback=None) -> dict:
+# ──────────────────────────── chat (non-code) ─────────────────────────────────
+
+def chat_reply(user_input: str, session_context: str = "") -> str:
+    ctx_block = f"\nConversation context:\n{session_context}\n" if session_context else ""
+    prompt = f"""You are a helpful AI assistant.{ctx_block}
+
+User: {user_input}
+Assistant:"""
+    return ask_llm(prompt).strip()
+
+
+# ──────────────────────────── main agent ─────────────────────────────────────
+
+def run_agent(user_input: str, log_callback=None, session_id: str = None) -> dict:
     def log(msg):
         if log_callback:
             log_callback(msg)
         else:
             print(msg)
 
+    _append_message(session_id, "user", user_input)
+    ctx = _session_context(session_id)
+
     log("Manifest tayyorlanmoqda...")
-    manifest = generate_project_manifest(user_input)
+    try:
+        manifest = generate_project_manifest(user_input, ctx)
+    except Exception as e:
+        err = f"LLM xatosi: {e}"
+        log(err)
+        _append_message(session_id, "assistant", err)
+        return {"status": "failed", "error": err}
 
     files = manifest.get("files", [])
     run_file = manifest.get("run", "main.py")
@@ -205,13 +308,16 @@ def run_agent(user_input: str, log_callback=None) -> dict:
 
     for attempt in range(MAX_RETRIES):
         if result.get("returncode") == 0:
-            log(f"Muvaffaqiyat! Output: {result.get('stdout', '')[:200]}")
+            out_preview = result.get("stdout", "")[:200]
+            log(f"Muvaffaqiyat! {out_preview}")
             git_result = git_commit_push(
                 project_dir,
                 f"V{attempt + 1} {project_name}: {user_input[:50]}",
             )
             log(f"Git: {git_result['stdout'][:120]}")
             remember_project(user_input, created, run_file, result)
+            summary = f"Loyiha yaratildi: {project_name}. Fayllar: {', '.join(created)}"
+            _append_message(session_id, "assistant", summary)
             return {
                 "status": "success",
                 "project_name": project_name,
@@ -221,14 +327,20 @@ def run_agent(user_input: str, log_callback=None) -> dict:
                 "git": git_result,
             }
 
-        log(f"Xato (attempt {attempt + 1}/{MAX_RETRIES}) — tuzatilmoqda...")
+        log(f"Xato (urinish {attempt + 1}/{MAX_RETRIES}) — tuzatilmoqda...")
         broken_code = open(run_path, "r", encoding="utf-8").read() if os.path.exists(run_path) else ""
-        fixed_code = fix_code(broken_code, result.get("stderr", ""))
+        try:
+            fixed_code = fix_code(broken_code, result.get("stderr", ""))
+        except Exception as e:
+            log(f"Fix xatosi: {e}")
+            break
         with open(run_path, "w", encoding="utf-8") as fh:
             fh.write(fixed_code)
         result = run_python_file(run_path)
 
     remember_project(user_input, created, run_file, result)
+    err_msg = f"Bajarilmadi: {result.get('stderr','')[:300]}"
+    _append_message(session_id, "assistant", err_msg)
     return {
         "status": "failed",
         "project_name": project_name,
