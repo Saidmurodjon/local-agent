@@ -3,6 +3,7 @@ import json
 import threading
 from flask import Flask, render_template, request, jsonify
 
+import config as _cfg
 from agent import (
     run_agent, chat_reply,
     create_session, get_session, list_sessions, delete_session,
@@ -247,6 +248,32 @@ def install_app():
 
     threading.Thread(target=do_install, daemon=True).start()
     return jsonify({"task_id": task_id})
+
+
+# ──────────────── ollama ─────────────────────────────────────────────────────
+
+@app.route("/api/ollama/status")
+def ollama_status():
+    import requests as _req
+    try:
+        r = _req.get(_cfg.OLLAMA_BASE + "/api/tags", timeout=5)
+        models = [m["name"] for m in r.json().get("models", [])] if r.ok else []
+        return jsonify({
+            "online": r.ok,
+            "current_model": _cfg.MODEL,
+            "models": models,
+        })
+    except Exception as e:
+        return jsonify({"online": False, "current_model": _cfg.MODEL, "models": [], "error": str(e)})
+
+
+@app.route("/api/ollama/model", methods=["POST"])
+def set_model():
+    name = (request.json or {}).get("model", "").strip()
+    if not name:
+        return jsonify({"error": "model name required"}), 400
+    _cfg.MODEL = name
+    return jsonify({"status": "ok", "model": _cfg.MODEL})
 
 
 # ──────────────── main ───────────────────────────────────────────────────────

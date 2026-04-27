@@ -1,3 +1,4 @@
+import re
 import requests
 import json
 import os
@@ -8,7 +9,12 @@ from tools.code_runner import run_python_file
 from tools.git_tool import git_commit_push
 from tools.system_tool import run_safe_command, install_package, list_workspace
 from tools.web_tool import create_web_project
-from config import OLLAMA_URL, MODEL, OLLAMA_OPTIONS, WORKSPACE_DIR, MAX_RETRIES
+import config as _cfg
+from config import OLLAMA_URL, OLLAMA_OPTIONS, WORKSPACE_DIR, MAX_RETRIES
+
+# Use a mutable reference so the model can be switched at runtime.
+def _model() -> str:
+    return _cfg.MODEL
 
 SYSTEM_PROMPT = """You are an elite local AI coding agent running on Intel Core i5 10th Gen with 12GB RAM and NVIDIA MX 330 GPU.
 
@@ -151,18 +157,42 @@ def remember_project(user_input, files, run_file, result):
 # ──────────────────────────── LLM helpers ────────────────────────────────────
 
 def _parse_ollama(response) -> str:
-    data = response.json()
+    try:
+        data = response.json()
+    except Exception:
+        raise RuntimeError(f"Ollama JSON xatosi. Status: {response.status_code}")
     if "error" in data:
         raise RuntimeError(f"Ollama: {data['error']}")
     if "response" not in data:
-        raise RuntimeError(f"Ollama unexpected response: {list(data.keys())}")
+        raise RuntimeError(f"Ollama kutilmagan javob: {list(data.keys())}")
     return data["response"]
+
+
+def _ollama_error(e: Exception) -> RuntimeError:
+    model = _model()
+    if isinstance(e, requests.exceptions.ConnectionError):
+        return RuntimeError(
+            f"Ollama serverga ulanib bo'lmadi.\n"
+            f"Buyruq: `ollama serve`"
+        )
+    if isinstance(e, requests.exceptions.Timeout):
+        return RuntimeError("Ollama 180s ichida javob bermadi. Model yuklanayotgan bo'lishi mumkin.")
+    if isinstance(e, requests.exceptions.HTTPError):
+        if e.response is not None and e.response.status_code == 404:
+            from config import list_ollama_models
+            available = ", ".join(list_ollama_models()) or "hech qanday model yo'q"
+            return RuntimeError(
+                f"Model topilmadi: `{model}`\n\n"
+                f"Mavjud modellar: {available}\n\n"
+                f"Yuklash uchun: `ollama pull {model}`"
+            )
+    return RuntimeError(str(e))
 
 
 def ask_llm(prompt: str) -> str:
     try:
         response = requests.post(OLLAMA_URL, json={
-            "model": MODEL,
+            "model": _model(),
             "prompt": prompt,
             "stream": False,
             "options": OLLAMA_OPTIONS,
@@ -170,19 +200,16 @@ def ask_llm(prompt: str) -> str:
         }, timeout=180)
         response.raise_for_status()
         return _parse_ollama(response)
-    except requests.exceptions.ConnectionError:
-        raise RuntimeError(
-            f"Ollama serverga ulanib bo'lmadi ({OLLAMA_URL}).\n"
-            f"Iltimos: `ollama serve` yoki `ollama run {MODEL}` buyrug'ini bajaring."
-        )
-    except requests.exceptions.Timeout:
-        raise RuntimeError("Ollama javob bermadi (180s). Model yuklanayotgan bo'lishi mumkin.")
+    except (requests.exceptions.ConnectionError,
+            requests.exceptions.Timeout,
+            requests.exceptions.HTTPError) as e:
+        raise _ollama_error(e)
 
 
 def ask_llm_json(prompt: str) -> dict:
     try:
         response = requests.post(OLLAMA_URL, json={
-            "model": MODEL,
+            "model": _model(),
             "prompt": prompt,
             "stream": False,
             "format": "json",
@@ -190,13 +217,10 @@ def ask_llm_json(prompt: str) -> dict:
             "keep_alive": "30m",
         }, timeout=180)
         response.raise_for_status()
-    except requests.exceptions.ConnectionError:
-        raise RuntimeError(
-            f"Ollama serverga ulanib bo'lmadi ({OLLAMA_URL}).\n"
-            f"Iltimos: `ollama serve` yoki `ollama run {MODEL}` buyrug'ini bajaring."
-        )
-    except requests.exceptions.Timeout:
-        raise RuntimeError("Ollama javob bermadi (180s). Model yuklanayotgan bo'lishi mumkin.")
+    except (requests.exceptions.ConnectionError,
+            requests.exceptions.Timeout,
+            requests.exceptions.HTTPError) as e:
+        raise _ollama_error(e)
     raw = _parse_ollama(response).strip()
     if raw.startswith("```"):
         raw = raw.replace("```json", "").replace("```", "").strip()
@@ -214,6 +238,25 @@ def extract_code(raw: str) -> str:
             break
         lines.append(line)
     return "\n".join(lines).strip()
+
+
+def sanitize_code(code: str) -> str:
+    """Comment out blocking server calls so the script can run and exit."""
+    lines = code.splitlines()
+    out = []
+    for line in lines:
+        # Flask / FastAPI / http.server blocking calls
+        if re.search(r'\bapp\.run\s*\(', line) or \
+           re.search(r'\buvicorn\.run\s*\(', line) or \
+           re.search(r'HTTPServer\s*\(.*\)\.serve_forever', line) or \
+           re.search(r'serve_forever\s*\(\s*\)', line):
+            stripped = line.lstrip()
+            indent  = line[: len(line) - len(stripped)]
+            out.append(f"{indent}# {stripped}  # disabled: test mode")
+            out.append(f'{indent}print("Server OK — test mode, not started")')
+        else:
+            out.append(line)
+    return "\n".join(out)
 
 
 def fix_code(code: str, error: str) -> str:
@@ -255,11 +298,13 @@ JSON format:
 }}
 
 Rules:
-- project_name must be lowercase with hyphens (e.g. "todo-app")
-- main.py must run automatically and print demo output
-- Do NOT use input() or infinite loops
-- For web apps: use Flask on port 5001 (agent UI is on 5000)
+- project_name: lowercase with hyphens only (e.g. "todo-app", "hello-world")
+- main.py MUST: run automatically, print demo output, then EXIT
+- Do NOT use input(), infinite loops, or app.run() / uvicorn.run()
+- For web projects: define routes but DO NOT start the server in main.py
+  Instead, print the routes and demo data, then exit cleanly
 - Always include README.md and requirements.txt
+- Keep main.py under 60 lines; no heavy imports (no torch, tensorflow)
 """
     return ask_llm_json(prompt)
 
@@ -319,6 +364,15 @@ def run_agent(user_input: str, log_callback=None, session_id: str = None) -> dic
         log(f"Yaratildi: {path}")
 
     run_path = os.path.join(project_dir, run_file)
+
+    # Remove any blocking server calls before first run
+    if os.path.exists(run_path):
+        raw = open(run_path, encoding="utf-8").read()
+        clean = sanitize_code(raw)
+        if clean != raw:
+            open(run_path, "w", encoding="utf-8").write(clean)
+            log("Server chaqiruvlari test uchun o'chirildi")
+
     log(f"Ishga tushirilmoqda: {run_file}")
     result = run_python_file(run_path)
 
@@ -346,7 +400,7 @@ def run_agent(user_input: str, log_callback=None, session_id: str = None) -> dic
         log(f"Xato (urinish {attempt + 1}/{MAX_RETRIES}) — tuzatilmoqda...")
         broken_code = open(run_path, "r", encoding="utf-8").read() if os.path.exists(run_path) else ""
         try:
-            fixed_code = fix_code(broken_code, result.get("stderr", ""))
+            fixed_code = sanitize_code(fix_code(broken_code, result.get("stderr", "") or result.get("stdout", "")))
         except Exception as e:
             log(f"Fix xatosi: {e}")
             break
