@@ -160,27 +160,43 @@ def _parse_ollama(response) -> str:
 
 
 def ask_llm(prompt: str) -> str:
-    response = requests.post(OLLAMA_URL, json={
-        "model": MODEL,
-        "prompt": prompt,
-        "stream": False,
-        "options": OLLAMA_OPTIONS,
-        "keep_alive": "30m",
-    }, timeout=180)
-    response.raise_for_status()
-    return _parse_ollama(response)
+    try:
+        response = requests.post(OLLAMA_URL, json={
+            "model": MODEL,
+            "prompt": prompt,
+            "stream": False,
+            "options": OLLAMA_OPTIONS,
+            "keep_alive": "30m",
+        }, timeout=180)
+        response.raise_for_status()
+        return _parse_ollama(response)
+    except requests.exceptions.ConnectionError:
+        raise RuntimeError(
+            f"Ollama serverga ulanib bo'lmadi ({OLLAMA_URL}).\n"
+            f"Iltimos: `ollama serve` yoki `ollama run {MODEL}` buyrug'ini bajaring."
+        )
+    except requests.exceptions.Timeout:
+        raise RuntimeError("Ollama javob bermadi (180s). Model yuklanayotgan bo'lishi mumkin.")
 
 
 def ask_llm_json(prompt: str) -> dict:
-    response = requests.post(OLLAMA_URL, json={
-        "model": MODEL,
-        "prompt": prompt,
-        "stream": False,
-        "format": "json",
-        "options": OLLAMA_OPTIONS,
-        "keep_alive": "30m",
-    }, timeout=180)
-    response.raise_for_status()
+    try:
+        response = requests.post(OLLAMA_URL, json={
+            "model": MODEL,
+            "prompt": prompt,
+            "stream": False,
+            "format": "json",
+            "options": OLLAMA_OPTIONS,
+            "keep_alive": "30m",
+        }, timeout=180)
+        response.raise_for_status()
+    except requests.exceptions.ConnectionError:
+        raise RuntimeError(
+            f"Ollama serverga ulanib bo'lmadi ({OLLAMA_URL}).\n"
+            f"Iltimos: `ollama serve` yoki `ollama run {MODEL}` buyrug'ini bajaring."
+        )
+    except requests.exceptions.Timeout:
+        raise RuntimeError("Ollama javob bermadi (180s). Model yuklanayotgan bo'lishi mumkin.")
     raw = _parse_ollama(response).strip()
     if raw.startswith("```"):
         raw = raw.replace("```json", "").replace("```", "").strip()
@@ -339,7 +355,10 @@ def run_agent(user_input: str, log_callback=None, session_id: str = None) -> dic
         result = run_python_file(run_path)
 
     remember_project(user_input, created, run_file, result)
-    err_msg = f"Bajarilmadi: {result.get('stderr','')[:300]}"
+    stderr = result.get("stderr", "").strip()
+    stdout = result.get("stdout", "").strip()
+    detail = stderr or stdout or "Noma'lum xato"
+    err_msg = f"Loyiha ishlamadi ({project_name}).\n\nXato:\n```\n{detail[:400]}\n```"
     _append_message(session_id, "assistant", err_msg)
     return {
         "status": "failed",
