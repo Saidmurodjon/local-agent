@@ -39,6 +39,7 @@ def init_db():
             id          TEXT PRIMARY KEY,
             name        TEXT NOT NULL,
             folder      TEXT,
+            model       TEXT,
             created_at  TEXT NOT NULL,
             updated_at  TEXT NOT NULL
         );
@@ -87,6 +88,10 @@ def init_db():
             completed_at    TEXT
         );
         """)
+        # migration: add model column if missing
+        cols = [r[1] for r in con.execute("PRAGMA table_info(sessions)").fetchall()]
+        if "model" not in cols:
+            con.execute("ALTER TABLE sessions ADD COLUMN model TEXT")
 
 
 # ──────────────────────────── sessions ───────────────────────────────────────
@@ -95,15 +100,15 @@ def _now() -> str:
     return time.strftime("%Y-%m-%d %H:%M:%S")
 
 
-def session_create(name: str, folder: str = None) -> dict:
+def session_create(name: str, folder: str = None, model: str = None) -> dict:
     sid = str(int(time.time() * 1000))
     folder = folder or os.path.abspath(f"./workspace/sessions/{sid}")
     os.makedirs(folder, exist_ok=True)
     now = _now()
     with _conn() as con:
         con.execute(
-            "INSERT INTO sessions (id,name,folder,created_at,updated_at) VALUES (?,?,?,?,?)",
-            (sid, name, folder, now, now),
+            "INSERT INTO sessions (id,name,folder,model,created_at,updated_at) VALUES (?,?,?,?,?,?)",
+            (sid, name, folder, model, now, now),
         )
     return session_get(sid)
 

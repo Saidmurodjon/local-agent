@@ -23,8 +23,10 @@ MAX_RETRIES    = _cfg.MAX_RETRIES
 
 # ──────────────────────────── model (switchable) ──────────────────────────────
 
+_model_override: str | None = None
+
 def _model() -> str:
-    return _cfg.MODEL
+    return _model_override or _cfg.MODEL
 
 
 # ──────────────────────────── LLM helpers ────────────────────────────────────
@@ -171,18 +173,24 @@ Rules:
 
 # ──────────────────────────── chat reply ─────────────────────────────────────
 
-def chat_reply(user_input: str, session_id: str = None) -> str:
+def chat_reply(user_input: str, session_id: str = None, model_override: str = None) -> str:
+    global _model_override
+    _model_override = model_override
     ctx = db.msg_context(session_id) if session_id else ""
     ctx_block = f"\nConversation history:\n{ctx}\n" if ctx else ""
     prompt = f"""You are a helpful AI assistant.{ctx_block}
 User: {user_input}
 Assistant:"""
-    return ask_llm(prompt).strip()
+    result = ask_llm(prompt).strip()
+    _model_override = None
+    return result
 
 
 # ──────────────────────────── main agent ─────────────────────────────────────
 
-def run_agent(user_input: str, log_callback=None, session_id: str = None) -> dict:
+def run_agent(user_input: str, log_callback=None, session_id: str = None, model_override: str = None) -> dict:
+    global _model_override
+    _model_override = model_override
     def log(msg, msg_type: str = "log"):
         if log_callback:
             log_callback(msg)
@@ -285,6 +293,7 @@ def run_agent(user_input: str, log_callback=None, session_id: str = None) -> dic
             if session_id:
                 db.msg_add(session_id, "assistant", summary, "chat")
 
+            _model_override = None
             return {
                 "status": "success",
                 "project_name": project_name,
@@ -321,6 +330,7 @@ def run_agent(user_input: str, log_callback=None, session_id: str = None) -> dic
     if session_id:
         db.msg_add(session_id, "assistant", err_msg, "chat")
 
+    _model_override = None
     return {
         "status": "failed",
         "project_name": project_name,

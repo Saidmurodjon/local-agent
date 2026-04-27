@@ -57,7 +57,8 @@ def new_session():
     data   = request.json or {}
     name   = data.get("name", "").strip() or f"Session {len(db.session_list())+1}"
     folder = data.get("folder", "").strip() or None
-    sess   = db.session_create(name, folder)
+    model  = data.get("model", "").strip() or None
+    sess   = db.session_create(name, folder, model)
     return jsonify(sess)
 
 
@@ -73,7 +74,7 @@ def get_session(sid):
 @app.route("/api/sessions/<sid>", methods=["PATCH"])
 def update_session(sid):
     data = request.json or {}
-    allowed = {k: v for k, v in data.items() if k in ("name", "folder")}
+    allowed = {k: v for k, v in data.items() if k in ("name", "folder", "model")}
     if "folder" in allowed and allowed["folder"]:
         os.makedirs(allowed["folder"], exist_ok=True)
     db.session_update(sid, **allowed)
@@ -117,11 +118,17 @@ def run_task():
     task_id = f"t{len(task_status)+1}"
     task_status[task_id] = {"status": "running", "log": []}
 
+    sess_model = None
+    if session_id:
+        s = db.session_get(session_id)
+        if s and s.get("model"):
+            sess_model = s["model"]
+
     def bg():
         def on_log(msg):
             task_status[task_id]["log"].append(msg)
         try:
-            result = run_agent(user_input, log_callback=on_log, session_id=session_id)
+            result = run_agent(user_input, log_callback=on_log, session_id=session_id, model_override=sess_model)
             task_status[task_id]["status"] = "done"
             task_status[task_id]["result"] = result
         except Exception as e:
@@ -156,8 +163,13 @@ def chat():
         return jsonify({"error": "Prompt bo'sh"}), 400
     if session_id:
         db.msg_add(session_id, "user", user_input, "chat")
+    sess_model = None
+    if session_id:
+        s = db.session_get(session_id)
+        if s and s.get("model"):
+            sess_model = s["model"]
     try:
-        reply = chat_reply(user_input, session_id)
+        reply = chat_reply(user_input, session_id, model_override=sess_model)
         if session_id:
             db.msg_add(session_id, "assistant", reply, "chat")
         return jsonify({"reply": reply})
