@@ -6,3 +6,5 @@ workspace/
 __pycache__/
 *.pyc
 workspace/
+workspace/.agent_memory.json
+workspace/__pycache__/

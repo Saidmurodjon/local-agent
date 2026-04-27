@@ -3,7 +3,9 @@ import json
 from config import OLLAMA_URL, MODEL
 from tools.file_tool import read_file, write_file
 from tools.code_runner import run_python_file
-
+from config import OLLAMA_URL, MODEL, OLLAMA_OPTIONS
+import os
+import time
 SYSTEM_PROMPT = """
 You are a local Python coding agent.
 
@@ -58,12 +60,43 @@ Rules:
 - Continue until task is fully done.
 - Always include args for tool actions.
 """
+
+
+MEMORY_FILE = "./workspace/.agent_memory.json"
+
+def load_memory():
+    if not os.path.exists(MEMORY_FILE):
+        return {"projects": []}
+
+    with open(MEMORY_FILE, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+def save_memory(data):
+    with open(MEMORY_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+def remember_project(user_input, files, run_file, result):
+    memory = load_memory()
+    memory["projects"].append({
+        "time": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "task": user_input,
+        "files": files,
+        "run_file": run_file,
+        "success": result.get("returncode") == 0,
+        "stdout": result.get("stdout", ""),
+        "stderr": result.get("stderr", "")
+    })
+    save_memory(memory)
+
 def ask_llm(prompt):
     response = requests.post(OLLAMA_URL, json={
         "model": MODEL,
         "prompt": prompt,
-        "stream": False
-    })
+        "stream": False,
+        "options": OLLAMA_OPTIONS,
+        "keep_alive": "30m"
+    }, timeout=180)
+
     return response.json()["response"]
 
 def clean_json(raw: str) -> str:
@@ -128,9 +161,9 @@ def run_agent(user_input):
         created.append(path)
 
     result = run_python_file(run_file)
-
     for attempt in range(3):
         if result.get("returncode") == 0:
+            remember_project(user_input, created, run_file, result)
             return {
                 "status": "success",
                 "created_files": created,
@@ -147,7 +180,7 @@ def run_agent(user_input):
 
         write_file(run_file, fixed_code)
         result = run_python_file(run_file)
-
+        remember_project(user_input, created, run_file, result)
     return {
         "status": "failed",
         "created_files": created,
@@ -181,8 +214,11 @@ def ask_llm_json(prompt):
         "model": MODEL,
         "prompt": prompt,
         "stream": False,
-        "format": "json"
-    })
+        "format": "json",
+        "options": OLLAMA_OPTIONS,
+        "keep_alive": "30m"
+    }, timeout=180)
+
     return json.loads(clean_json(response.json()["response"]))
 def generate_project_manifest(user_input):
     prompt = f"""
