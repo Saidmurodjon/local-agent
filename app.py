@@ -287,6 +287,51 @@ def install_app():
     return jsonify({"task_id": task_id})
 
 
+# ── filesystem browser ────────────────────────────────────────────────────────
+
+@app.route("/api/fs/ls")
+def fs_ls():
+    """List directory contents for folder browser."""
+    path = request.args.get("path", "").strip()
+    if not path:
+        # Return drive roots on Windows, / on Linux
+        import string, platform
+        roots = []
+        if platform.system() == "Windows":
+            for d in string.ascii_uppercase:
+                dp = f"{d}:\\"
+                if os.path.exists(dp):
+                    roots.append({"name": dp, "path": dp, "type": "drive"})
+        else:
+            roots = [{"name": "/", "path": "/", "type": "dir"}]
+        return jsonify({"path": "", "parent": None, "items": roots})
+
+    try:
+        path = os.path.abspath(path)
+        parent = os.path.dirname(path) if path != os.path.splitdrive(path)[0] + "\\" else None
+        _SKIP = {"$recycle.bin","system volume information","documents and settings",
+                 "programdata","recovery","$windows.~bt","$windows.~ws","windows.old",
+                 "boot","efi","perflogs","dumpstack.log.tmp"}
+        items = []
+        with os.scandir(path) as it:
+            for e in sorted(it, key=lambda x: (not x.is_dir(), x.name.lower())):
+                if e.name.startswith("."):
+                    continue
+                if e.name.lower() in _SKIP:
+                    continue
+                if e.is_dir():
+                    try:
+                        stat = e.stat()
+                    except Exception:
+                        continue
+                    items.append({"name": e.name, "path": e.path.replace("\\", "/"), "type": "dir"})
+        return jsonify({"path": path.replace("\\", "/"), "parent": parent.replace("\\", "/") if parent else None, "items": items})
+    except PermissionError:
+        return jsonify({"path": path, "parent": None, "items": [], "error": "Permission denied"})
+    except Exception as e:
+        return jsonify({"path": path, "parent": None, "items": [], "error": str(e)})
+
+
 # ── ollama ────────────────────────────────────────────────────────────────────
 
 @app.route("/api/ollama/status")
@@ -295,7 +340,21 @@ def ollama_status():
     try:
         r = _req.get(_cfg.OLLAMA_BASE + "/api/tags", timeout=5)
         models = [m["name"] for m in r.json().get("models", [])] if r.ok else []
-        return jsonify({"online": r.ok, "current_model": _cfg.MODEL, "models": models})
+        gpu = _cfg.get_gpu_info()
+        # Measure tok/sec
+        tok_sec = 0
+        try:
+            ps = _req.get(_cfg.OLLAMA_BASE + "/api/ps", timeout=3).json()
+            # Use a quick generation to measure
+            pass
+        except Exception:
+            pass
+        return jsonify({
+            "online": r.ok,
+            "current_model": _cfg.MODEL,
+            "models": models,
+            "gpu": gpu,
+        })
     except Exception as e:
         return jsonify({"online": False, "current_model": _cfg.MODEL, "models": [], "error": str(e)})
 
@@ -307,6 +366,36 @@ def set_model():
         return jsonify({"error": "model name required"}), 400
     _cfg.MODEL = name
     return jsonify({"status": "ok", "model": _cfg.MODEL})
+
+
+@app.route("/api/ollama/enable_gpu", methods=["POST"])
+def enable_gpu():
+    """Restart Ollama service with CUDA environment variables."""
+    import subprocess
+    import platform
+    try:
+        if platform.system() == "Windows":
+            # Stop Ollama service
+            subprocess.run("taskkill /F /IM ollama.exe", shell=True,
+                           capture_output=True, timeout=10)
+            import time; time.sleep(2)
+            # Restart with GPU env
+            env = os.environ.copy()
+            env["OLLAMA_NUM_GPU"] = "20"
+            env["CUDA_VISIBLE_DEVICES"] = "0"
+            subprocess.Popen(
+                ["ollama", "serve"],
+                env=env,
+                creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            time.sleep(3)
+            return jsonify({"status": "restarted", "message": "Ollama CUDA bilan qayta ishga tushirildi"})
+        else:
+            return jsonify({"status": "manual", "message": "Linux: OLLAMA_NUM_GPU=20 ollama serve"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)})
 
 
 # ── fine-tune ─────────────────────────────────────────────────────────────────

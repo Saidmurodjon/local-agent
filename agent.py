@@ -186,14 +186,24 @@ CRITICAL:
 
 # ──────────────────────────── manifest ───────────────────────────────────────
 
+def _summarize_context(ctx: str) -> str:
+    """Compress long context to avoid overflow."""
+    if not ctx or len(ctx) < 800:
+        return ctx
+    # Take only last 2 exchanges max (≤600 chars)
+    lines = [l for l in ctx.strip().splitlines() if l.strip()]
+    return "\n".join(lines[-10:])[:600]
+
+
 def generate_project_manifest(user_input: str, session_context: str = "") -> dict:
-    ctx_block = f"\nConversation context:\n{session_context}\n" if session_context else ""
+    short_ctx = _summarize_context(session_context)
+    ctx_block = f"\nPrevious context:\n{short_ctx}\n" if short_ctx else ""
     prompt = f"""Return ONLY valid JSON. No explanation.
 {ctx_block}
 Create a complete GitHub-ready Python project for:
 "{user_input}"
 
-Hardware: i5-10th Gen, 12GB RAM, NVIDIA MX330 2GB. No PyTorch/TensorFlow.
+Hardware: i5-10th Gen, 12GB RAM, NVIDIA MX230 2GB VRAM. No PyTorch/TensorFlow.
 
 JSON:
 {{

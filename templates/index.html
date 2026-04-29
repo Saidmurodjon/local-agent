@@ -203,14 +203,45 @@ textarea{flex:1;background:transparent;color:var(--text);border:none;outline:non
 .mode-btn.active{background:var(--accent);color:#000}
 
 /* modal overlay */
-.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;display:flex;align-items:center;justify-content:center}
-.modal{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:20px;width:420px;max-width:95vw}
-.modal h3{font-size:14px;font-weight:700;color:var(--text);margin-bottom:14px}
-.modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:100;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px)}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:0;width:480px;max-width:96vw;box-shadow:0 24px 48px rgba(0,0,0,.5);overflow:hidden}
+.modal-head{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-head h3{font-size:14px;font-weight:700;color:var(--text)}
+.modal-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;line-height:1;padding:2px 6px;border-radius:4px}
+.modal-close:hover{background:var(--bg3);color:var(--text)}
+.modal-body{padding:16px 18px}
+.modal-footer{padding:12px 18px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;background:var(--bg3)}
+
+/* ─── FOLDER BROWSER ─── */
+.fb-wrap{display:flex;flex-direction:column;gap:0;height:380px}
+.fb-breadcrumb{display:flex;align-items:center;gap:0;padding:8px 12px;background:var(--bg3);border-bottom:1px solid var(--border);overflow-x:auto;white-space:nowrap;flex-shrink:0}
+.fb-breadcrumb::-webkit-scrollbar{height:0}
+.fb-crumb{font-size:11px;color:var(--muted);cursor:pointer;padding:1px 4px;border-radius:3px;font-family:var(--mono)}
+.fb-crumb:hover{color:var(--accent);background:var(--bg4)}
+.fb-crumb.active{color:var(--text);cursor:default}
+.fb-crumb-sep{color:var(--muted2);font-size:10px;padding:0 2px}
+.fb-list{flex:1;overflow-y:auto;padding:4px}
+.fb-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:5px;cursor:pointer;transition:.1s}
+.fb-item:hover{background:var(--bg4)}
+.fb-item.selected{background:#1a2d45;border:1px solid #1f4a7f}
+.fb-item:not(.selected){border:1px solid transparent}
+.fb-icon{font-size:14px;flex-shrink:0;width:18px;text-align:center}
+.fb-name{font-size:12.5px;color:var(--text);font-family:var(--mono)}
+.fb-type-dir .fb-name{color:var(--accent)}
+.fb-empty{color:var(--muted2);font-size:12px;padding:20px;text-align:center}
+.fb-path-bar{padding:8px 12px;border-top:1px solid var(--border);background:var(--bg);display:flex;align-items:center;gap:8px;flex-shrink:0}
+.fb-path-bar span{font-size:10px;color:var(--muted2);flex-shrink:0}
+.fb-path-input{flex:1;background:transparent;border:none;outline:none;color:var(--text);font-family:var(--mono);font-size:11px}
 
 /* session specialist chip */
-.specialist-chip{font-size:10px;color:var(--purple);background:#1a0d35;border:1px solid #3a1a6e;padding:2px 8px;border-radius:10px;white-space:nowrap;cursor:pointer}
+.specialist-chip{font-size:10px;color:var(--purple);background:#1a0d35;border:1px solid #3a1a6e;padding:2px 8px;border-radius:10px;white-space:nowrap;cursor:pointer;display:inline-flex;align-items:center;gap:3px}
 .specialist-chip:hover{background:#21104a}
+
+/* GPU bar */
+.gpu-bar-wrap{height:3px;background:var(--bg3);border-radius:2px;margin-top:3px;overflow:hidden}
+.gpu-bar{height:100%;background:var(--green);border-radius:2px;transition:.5s}
+.gpu-bar.hot{background:var(--orange)}
+.gpu-bar.full{background:var(--red)}
 </style>
 </head>
 <body>
@@ -240,7 +271,16 @@ textarea{flex:1;background:transparent;color:var(--text);border:none;outline:non
         <option>loading...</option>
       </select>
     </div>
-    <div class="info-row"><span class="info-label">GPU</span><span class="info-val">MX330×18</span></div>
+    <div class="info-row" style="flex-direction:column;gap:3px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span class="info-label">GPU <span id="gpu-name" style="font-size:9px;color:var(--muted2)"></span></span>
+        <span style="display:flex;gap:4px;align-items:center">
+          <span id="gpu-val" class="info-val">—</span>
+          <button id="gpu-enable-btn" title="GPU yoqish" onclick="enableGpu()" style="display:none;background:none;border:1px solid var(--orange);color:var(--orange);border-radius:3px;font-size:9px;padding:1px 4px;cursor:pointer">GPU yoq</button>
+        </span>
+      </div>
+      <div class="gpu-bar-wrap"><div class="gpu-bar" id="gpu-bar" style="width:0%"></div></div>
+    </div>
     <div class="info-row"><span class="info-label">RAM</span><span class="info-val">12 GB</span></div>
   </div>
 </div>
@@ -405,20 +445,29 @@ textarea{flex:1;background:transparent;color:var(--text);border:none;outline:non
 <!-- ═══ NEW SESSION MODAL ═══ -->
 <div class="modal-bg" id="new-sess-modal" style="display:none" onclick="if(event.target===this)closeNewModal()">
   <div class="modal">
-    <h3>Yangi Session</h3>
-    <label class="tp-label">Session nomi</label>
-    <input class="tp-input" id="ns-name" placeholder="Mening loyiham" style="margin-bottom:10px">
-    <label class="tp-label">Papka yo'li (bo'sh = avtomatik)</label>
-    <div style="display:flex;gap:6px;margin-bottom:4px">
-      <input class="tp-input" id="ns-folder" placeholder="C:\Users\...\projects\myapp" style="margin:0;flex:1">
-      <button class="tp-btn" style="flex:none;padding:4px 10px" onclick="browseFolder()">📁</button>
+    <div class="modal-head">
+      <h3>✦ Yangi Session</h3>
+      <button class="modal-close" onclick="closeNewModal()">✕</button>
     </div>
-    <div style="font-size:10px;color:var(--muted2);margin-bottom:12px;font-family:var(--mono)" id="ns-folder-hint"></div>
-    <label class="tp-label">Specialist model (ixtiyoriy)</label>
-    <select class="tp-input" id="ns-model" style="margin-bottom:4px">
-      <option value="">— Standart model —</option>
-    </select>
-    <div style="font-size:10px;color:var(--muted2);margin-bottom:4px">Fine-tuned specialist modelni tanlang</div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:10px">
+      <div>
+        <label class="tp-label">Session nomi</label>
+        <input class="tp-input" id="ns-name" placeholder="Mening loyiham">
+      </div>
+      <div>
+        <label class="tp-label">Papka</label>
+        <div style="display:flex;gap:6px">
+          <input class="tp-input" id="ns-folder" placeholder="Avtomatik (workspace/sessions/...)" style="margin:0;flex:1;font-family:var(--mono);font-size:11px">
+          <button class="tp-btn" style="flex:none;padding:5px 12px;font-size:13px" onclick="openFolderBrowser('ns-folder')">📁</button>
+        </div>
+      </div>
+      <div>
+        <label class="tp-label">Specialist model <span style="color:var(--muted2)">(ixtiyoriy)</span></label>
+        <select class="tp-input" id="ns-model">
+          <option value="">— Standart model ishlatiladi —</option>
+        </select>
+      </div>
+    </div>
     <div class="modal-footer">
       <button class="tp-btn" onclick="closeNewModal()">Bekor</button>
       <button class="tp-btn primary" onclick="confirmNewSession()">Yaratish</button>
@@ -429,16 +478,45 @@ textarea{flex:1;background:transparent;color:var(--text);border:none;outline:non
 <!-- ═══ FOLDER EDIT MODAL ═══ -->
 <div class="modal-bg" id="folder-modal" style="display:none" onclick="if(event.target===this)closeFolderModal()">
   <div class="modal">
-    <h3>Papkani o'zgartirish</h3>
-    <label class="tp-label">Yangi papka yo'li</label>
-    <div style="display:flex;gap:6px;margin-bottom:4px">
-      <input class="tp-input" id="fm-folder" placeholder="C:\Users\...\projects\myapp" style="margin:0;flex:1">
-      <button class="tp-btn" style="flex:none;padding:4px 10px" onclick="browseFolderEdit()">📁</button>
+    <div class="modal-head">
+      <h3>📁 Papkani o'zgartirish</h3>
+      <button class="modal-close" onclick="closeFolderModal()">✕</button>
     </div>
-    <div style="font-size:10px;color:var(--muted2);margin-bottom:12px;font-family:var(--mono)" id="fm-hint">Papka avtomatik yaratiladi</div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;gap:6px">
+        <input class="tp-input" id="fm-folder" placeholder="C:\Users\...\projects\myapp" style="margin:0;flex:1;font-family:var(--mono);font-size:11px">
+        <button class="tp-btn" style="flex:none;padding:5px 12px;font-size:13px" onclick="openFolderBrowser('fm-folder')">📁</button>
+      </div>
+      <div style="font-size:10.5px;color:var(--muted2)">Papka mavjud bo'lmasa avtomatik yaratiladi</div>
+    </div>
     <div class="modal-footer">
       <button class="tp-btn" onclick="closeFolderModal()">Bekor</button>
       <button class="tp-btn primary" onclick="confirmFolderChange()">Saqlash</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ FOLDER BROWSER MODAL ═══ -->
+<div class="modal-bg" id="fb-modal" style="display:none" onclick="if(event.target===this)fbClose()">
+  <div class="modal" style="width:520px">
+    <div class="modal-head">
+      <h3>📁 Papka tanlang</h3>
+      <button class="modal-close" onclick="fbClose()">✕</button>
+    </div>
+    <div class="fb-wrap">
+      <div class="fb-breadcrumb" id="fb-breadcrumb"></div>
+      <div class="fb-list" id="fb-list">
+        <div class="fb-empty">Yuklanmoqda...</div>
+      </div>
+      <div class="fb-path-bar">
+        <span>Yo'l:</span>
+        <input class="fb-path-input" id="fb-path-input" placeholder="Papka yo'lini kiriting..." onkeydown="if(event.key==='Enter')fbNavigateTo(this.value)">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="tp-btn" onclick="fbClose()">Bekor</button>
+      <button class="tp-btn" onclick="fbNavigateTo(document.getElementById('fb-path-input').value)">↵ Kirish</button>
+      <button class="tp-btn primary" id="fb-select-btn" onclick="fbConfirm()">✓ Shu papkani tanlash</button>
     </div>
   </div>
 </div>
@@ -525,12 +603,97 @@ function setMode(m){
   $('mode-chat').classList.toggle('active',m==='chat');
   $('mode-agent').classList.toggle('active',m==='agent');
   $('prompt').placeholder=m==='agent'?'Loyiha yaratishni buyuring... (Agent rejimi)':'Savol bering... (Chat rejimi)';
-  $('inp-hint').textContent=m==='agent'?'⚡ Agent rejimi — loyiha yaratadi &nbsp;·&nbsp; Enter = yuborish':'💬 Chat rejimi &nbsp;·&nbsp; Enter = yuborish &nbsp;·&nbsp; Shift+Enter = yangi qator';
+  $('inp-hint').textContent=m==='agent'?'⚡ Agent rejimi — loyiha yaratadi  ·  Enter = yuborish':'💬 Chat rejimi  ·  Enter = yuborish  ·  Shift+Enter = yangi qator';
+}
+
+// ── FOLDER BROWSER ────────────────────────────────────────────────────────────
+let _fbTargetInput = null;  // which input to populate
+let _fbCurrentPath = '';
+let _fbSelectedPath = '';
+
+function openFolderBrowser(targetInputId){
+  _fbTargetInput = targetInputId;
+  const current = $(targetInputId)?$(targetInputId).value.trim() : '';
+  _fbSelectedPath = current;
+  $('fb-modal').style.display='flex';
+  fbNavigateTo(current || '');
+}
+function fbClose(){$('fb-modal').style.display='none';_fbTargetInput=null}
+
+async function fbNavigateTo(path){
+  path = (path||'').trim();
+  $('fb-list').innerHTML='<div class="fb-empty">Yuklanmoqda...</div>';
+  const url='/api/fs/ls'+(path?'?path='+encodeURIComponent(path):'');
+  try{
+    const d=await(await fetch(url)).json();
+    _fbCurrentPath=d.path||'';
+    _fbSelectedPath=_fbCurrentPath;
+    $('fb-path-input').value=_fbCurrentPath;
+    renderFbBreadcrumb(_fbCurrentPath);
+    renderFbItems(d.items||[], d.parent||null, d.error||null);
+  }catch(e){
+    $('fb-list').innerHTML=`<div class="fb-empty">Xato: ${e.message}</div>`;
+  }
+}
+
+function renderFbBreadcrumb(path){
+  const bc=$('fb-breadcrumb');
+  if(!path){bc.innerHTML='<span class="fb-crumb active">Kompyuter</span>';return}
+  const sep=path.includes('\\')?'\\':'/';
+  const parts=path.replace(/[/\\]+$/,'').split(/[/\\]/).filter(Boolean);
+  let html='<span class="fb-crumb" onclick="fbNavigateTo(\'\')">🖥</span>';
+  let built='';
+  parts.forEach((p,i)=>{
+    const isFirst=i===0&&p.endsWith(':');
+    built=isFirst?p+sep:(built+sep+p).replace(/\\\\/g,'\\');
+    if(i<parts.length-1){
+      const b=built;
+      html+=`<span class="fb-crumb-sep">›</span><span class="fb-crumb" onclick="fbNavigateTo('${b.replace(/\\/g,'\\\\')}')">${p}</span>`;
+    }else{
+      html+=`<span class="fb-crumb-sep">›</span><span class="fb-crumb active">${p}</span>`;
+    }
+  });
+  bc.innerHTML=html;
+}
+
+function renderFbItems(items, parent, error){
+  const list=$('fb-list');
+  if(error&&!items.length){list.innerHTML=`<div class="fb-empty">⚠ ${error}</div>`;return}
+  let html='';
+  if(parent!==null){
+    const pp=parent.replace(/\\/g,'\\\\');
+    html+=`<div class="fb-item fb-type-dir" onclick="fbNavigateTo('${pp}')">
+      <span class="fb-icon">↑</span><span class="fb-name">.. (yuqoriga)</span></div>`;
+  }
+  items.forEach(item=>{
+    const p=item.path.replace(/\\/g,'\\\\');
+    const icon=item.type==='drive'?'💾':'📁';
+    html+=`<div class="fb-item fb-type-dir" onclick="fbSelectItem('${p}')" ondblclick="fbNavigateTo('${p}')">
+      <span class="fb-icon">${icon}</span><span class="fb-name">${item.name}</span></div>`;
+  });
+  if(!items.length&&parent===null){html='<div class="fb-empty">Bo\'sh yoki kirish mumkin emas</div>'}
+  list.innerHTML=html;
+}
+
+function fbSelectItem(path){
+  _fbSelectedPath=path.replace(/\\\\/g,'\\');
+  $('fb-path-input').value=_fbSelectedPath;
+  document.querySelectorAll('.fb-item').forEach(el=>el.classList.remove('selected'));
+  event.currentTarget.classList.add('selected');
+}
+
+function fbConfirm(){
+  const path=($('fb-path-input').value||_fbSelectedPath||_fbCurrentPath).trim();
+  if(!path){fbClose();return}
+  if(_fbTargetInput&&$((_fbTargetInput))){
+    $(_fbTargetInput).value=path;
+  }
+  fbClose();
 }
 
 // ── new session modal ─────────────────────────────────────────────────────────
 function newSession(){
-  $('ns-name').value='';$('ns-folder').value='';$('ns-folder-hint').textContent='';
+  $('ns-name').value='';$('ns-folder').value='';
   loadAllModelsForModal();
   $('new-sess-modal').style.display='flex';
   setTimeout(()=>$('ns-name').focus(),50);
@@ -539,19 +702,13 @@ function closeNewModal(){$('new-sess-modal').style.display='none'}
 
 async function loadAllModelsForModal(){
   const sel=$('ns-model');
-  sel.innerHTML='<option value="">— Standart model —</option>';
+  sel.innerHTML='<option value="">— Standart model ishlatiladi —</option>';
   try{
     const d=await(await fetch('/api/ollama/status')).json();
     (d.models||[]).forEach(m=>{
       const o=document.createElement('option');o.value=m;o.textContent=m;sel.appendChild(o);
     });
   }catch(e){}
-}
-
-function browseFolder(){
-  const hint='Papka yo\'lini qo\'lda kiriting (masalan: C:\\projects\\myapp yoki /home/user/projects/myapp)';
-  $('ns-folder-hint').textContent=hint;
-  $('ns-folder').focus();
 }
 
 async function confirmNewSession(){
@@ -574,7 +731,6 @@ function changeFolderDialog(sid){
   setTimeout(()=>$('fm-folder').focus(),50);
 }
 function closeFolderModal(){$('folder-modal').style.display='none';_folderModalSid=null}
-function browseFolderEdit(){$('fm-hint').textContent='Papka yo\'lini qo\'lda kiriting';$('fm-folder').focus()}
 
 async function confirmFolderChange(){
   const folder=$('fm-folder').value.trim();
@@ -847,7 +1003,7 @@ async function installApp(){
   },2000);
 }
 
-// ── ollama ────────────────────────────────────────────────────────────────────
+// ── ollama + GPU status ───────────────────────────────────────────────────────
 async function loadOllamaStatus(){
   try{
     const d=await(await fetch('/api/ollama/status')).json();
@@ -856,13 +1012,45 @@ async function loadOllamaStatus(){
     $('ollama-txt').style.color=d.online?'var(--green)':'var(--red)';
     const sel=$('model-sel');
     sel.innerHTML=(d.models||[]).map(m=>`<option value="${m}"${m===d.current_model?' selected':''}>${m}</option>`).join('');
-    $('model-chip').textContent=d.current_model+' · MX330';
+
+    // GPU info
+    const gpu=(d.gpu||{});
+    const gpuName=(gpu.name||'').split(' ').slice(-2).join(' ');
+    $('gpu-name').textContent=gpuName?'('+gpuName+')':'';
+    if(gpu.cuda){
+      const used=gpu.vram_used||0, total=gpu.vram_total||2048;
+      const pct=Math.round(used/total*100);
+      $('gpu-val').textContent=gpu.ollama_using_gpu?`${used}/${total} MB`:'CPU rejimi';
+      $('gpu-val').style.color=gpu.ollama_using_gpu?'var(--green)':'var(--orange)';
+      const bar=$('gpu-bar');
+      bar.style.width=(gpu.ollama_using_gpu?pct:0)+'%';
+      bar.className='gpu-bar'+(pct>80?' hot':pct>95?' full':'');
+      $('model-chip').textContent=d.current_model+' · '+(gpu.ollama_using_gpu?'GPU':'CPU');
+      $('gpu-enable-btn').style.display=gpu.ollama_using_gpu?'none':'inline-block';
+    } else {
+      $('gpu-val').textContent='yo\'q';
+      $('model-chip').textContent=d.current_model+' · CPU';
+      $('gpu-enable-btn').style.display='none';
+    }
   }catch(e){$('ollama-dot').style.background='var(--red)';$('ollama-txt').textContent='xato'}
 }
 async function changeModel(name){
   if(!name)return;
   await fetch('/api/ollama/model',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:name})});
-  $('model-chip').textContent=name+' · MX330';
+  await loadOllamaStatus();
+}
+
+async function enableGpu(){
+  const btn=$('gpu-enable-btn');
+  btn.textContent='...';btn.disabled=true;
+  const r=await(await fetch('/api/ollama/enable_gpu',{method:'POST'})).json();
+  btn.textContent='GPU yoq';btn.disabled=false;
+  if(r.status==='restarted'){
+    setTimeout(loadOllamaStatus,4000);
+    addLog('GPU: Ollama CUDA bilan qayta ishga tushirildi',true);
+  } else {
+    addLog('GPU: '+r.message,false);
+  }
 }
 
 // ── fine-tune ─────────────────────────────────────────────────────────────────
